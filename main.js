@@ -4,6 +4,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import * as CANNON from 'cannon-es';
 import { GUI } from 'lil-gui';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 // ---------------------------------------------------------
 // 1. Scene & Physics World Setup
@@ -43,6 +46,19 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+// Post-Processing
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5, // Strength
+    0.4, // Radius
+    0.9  // Threshold (High to avoid floor blooming)
+);
+composer.addPass(bloomPass);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -103,7 +119,7 @@ loader.setDRACOLoader(dracoLoader);
 
 // Chair Setup
 const radius = 4;
-const chairCount = 12;
+const chairCount = 5;
 const CHAOS_ANGLE = 0.2;
 const CHAOS_RADIUS = 1.1;
 const CHAOS_ROTATION = 0.3;
@@ -665,9 +681,13 @@ function spawnParticle(position, type) {
     let selectedGeo = particleGeo;
 
     if (type === 'fire') {
-        color = fireColors[Math.floor(Math.random() * fireColors.length)];
+        // High Dynamic Range Color for Bloom
+        const c = new THREE.Color(fireColors[Math.floor(Math.random() * fireColors.length)]);
+        c.multiplyScalar(10.0); // Very bright!
+        color = c;
+
         life = 0.4 + Math.random() * 0.6;
-        velocity.set((Math.random() - 0.5) * 15, Math.random() * 15, (Math.random() - 0.5) * 15);
+        velocity.set((Math.random() - 0.5) * 45, Math.random() * 45, (Math.random() - 0.5) * 45);
         size = 1.0 + Math.random() * 2.0;
     } else if (type === 'dust') {
         color = 0xffffff;
@@ -922,6 +942,7 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
 });
 
 function setupGUI() {
@@ -1000,7 +1021,7 @@ function animate() {
     updateLighting(deltaTime);
 
     controls.update();
-    renderer.render(scene, camera);
+    composer.render();
 }
 
 animate();
