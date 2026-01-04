@@ -8,6 +8,29 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+// --- Configuration ---
+const CONFIG = {
+    VISUAL: {
+        BLOOM_STRENGTH: 0.3,
+        BLOOM_RADIUS: 0.1,
+        BLOOM_THRESHOLD: 1
+    },
+    EXPLOSION: {
+        FIRE_SPEED: 120,
+        FIRE_SIZE_MIN: 0.05,
+        FIRE_SIZE_MAX: 0.2,
+        SOOT_COUNT: 2000,
+        SOOT_SIZE_MIN: 0.05,
+        SOOT_SIZE_MAX: 0.4,
+        DEBRIS_SPLINTER_COUNT: 20,
+        DEBRIS_SPLINTER_SIZE_MIN: 0.05,
+        DEBRIS_SPLINTER_SIZE_MAX: 0.15,
+        DEFLAGRATION_COUNT: 0, // 짙은 잔류 연기
+        DEFLAGRATION_LIFE_MIN: 5.0,
+        DEFLAGRATION_LIFE_MAX: 8.0
+    }
+};
+
 // ---------------------------------------------------------
 // 1. Scene & Physics World Setup
 // ---------------------------------------------------------
@@ -54,14 +77,19 @@ composer.addPass(renderPass);
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1.5, // Strength
-    0.4, // Radius
-    0.9  // Threshold (High to avoid floor blooming)
+    CONFIG.VISUAL.BLOOM_STRENGTH,
+    CONFIG.VISUAL.BLOOM_RADIUS,
+    CONFIG.VISUAL.BLOOM_THRESHOLD
 );
 composer.addPass(bloomPass);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.PAN,
+    RIGHT: null
+};
 
 // ---------------------------------------------------------
 // 3. Lighting
@@ -119,7 +147,7 @@ loader.setDRACOLoader(dracoLoader);
 
 // Chair Setup
 const radius = 4;
-const chairCount = 5;
+const chairCount = 8;
 const CHAOS_ANGLE = 0.2;
 const CHAOS_RADIUS = 1.1;
 const CHAOS_ROTATION = 0.3;
@@ -129,19 +157,8 @@ const texLoader = new THREE.TextureLoader();
 const decalTexture = texLoader.load('./assets/explosionmark.png?v=' + Date.now());
 
 // --- Configuration ---
-const CONFIG = {
-    EXPLOSION: {
-        SOOT_COUNT: 4000,
-        SOOT_SIZE_MIN: 0.05,
-        SOOT_SIZE_MAX: 0.4,
-        DEBRIS_SPLINTER_COUNT: 20,
-        DEBRIS_SPLINTER_SIZE_MIN: 0.05,
-        DEBRIS_SPLINTER_SIZE_MAX: 0.15,
-        DEFLAGRATION_COUNT: 0, // 짙은 잔류 연기
-        DEFLAGRATION_LIFE_MIN: 5.0,
-        DEFLAGRATION_LIFE_MAX: 8.0
-    }
-};
+// CONFIG moved to top
+
 
 loader.load(
     './assets/chair.glb?v=' + Date.now(),
@@ -291,7 +308,13 @@ function getRayIntersection(clientX, clientY) {
 }
 
 function onMouseDown(event) {
-    if (controls.enabled && event.button !== 0) return; // 왼쪽 클릭만
+    // Right Click - Bomb
+    if (event.button === 2) {
+        spawnBomb(event.clientX, event.clientY);
+        return;
+    }
+
+    if (controls.enabled && event.button !== 0) return; // 왼쪽 클릭만 logic continuation
 
     const hit = getRayIntersection(event.clientX, event.clientY);
 
@@ -376,10 +399,10 @@ const BASE_AMBIENT_INTENSITY = 52.5;
 let lightFlickerTimer = 0;
 
 // --- 1. Triple Click Trigger ---
-window.addEventListener('click', (event) => {
-    if (event.detail === 3) {
-        spawnBomb(event.clientX, event.clientY);
-    }
+// --- 1. Bomb Trigger (Right Click) ---
+// Handled in onMouseDown. Prevent context menu.
+window.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
 });
 
 function spawnBomb(clientX, clientY) {
@@ -681,14 +704,19 @@ function spawnParticle(position, type) {
     let selectedGeo = particleGeo;
 
     if (type === 'fire') {
+        selectedGeo = sphereParticleGeo;
         // High Dynamic Range Color for Bloom
         const c = new THREE.Color(fireColors[Math.floor(Math.random() * fireColors.length)]);
         c.multiplyScalar(10.0); // Very bright!
         color = c;
 
         life = 0.4 + Math.random() * 0.6;
-        velocity.set((Math.random() - 0.5) * 45, Math.random() * 45, (Math.random() - 0.5) * 45);
-        size = 1.0 + Math.random() * 2.0;
+        const speed = CONFIG.EXPLOSION.FIRE_SPEED;
+        velocity.set((Math.random() - 0.5) * speed, Math.random() * speed, (Math.random() - 0.5) * speed);
+
+        const minSize = CONFIG.EXPLOSION.FIRE_SIZE_MIN;
+        const maxSize = CONFIG.EXPLOSION.FIRE_SIZE_MAX;
+        size = minSize + Math.random() * (maxSize - minSize);
     } else if (type === 'dust') {
         color = 0xffffff;
         life = 1.5 + Math.random() * 1.5;
@@ -981,6 +1009,18 @@ function setupGUI() {
     cameraFolder.add(camera, 'fov', 10, 100).name('FOV').onChange(() => {
         camera.updateProjectionMatrix();
     });
+
+    const explosionFolder = gui.addFolder('Explosion & Visuals');
+
+    const bloomFolder = explosionFolder.addFolder('Bloom Effect');
+    bloomFolder.add(CONFIG.VISUAL, 'BLOOM_STRENGTH', 0, 3).name('Strength').onChange(v => bloomPass.strength = v);
+    bloomFolder.add(CONFIG.VISUAL, 'BLOOM_RADIUS', 0, 1).name('Radius').onChange(v => bloomPass.radius = v);
+    bloomFolder.add(CONFIG.VISUAL, 'BLOOM_THRESHOLD', 0, 1).name('Threshold').onChange(v => bloomPass.threshold = v);
+
+    const fireFolder = explosionFolder.addFolder('Fire Particles');
+    fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SPEED', 0, 100).name('Speed');
+    fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SIZE_MIN', 0.1, 5).name('Size Min');
+    fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SIZE_MAX', 0.1, 5).name('Size Max');
 }
 
 setupGUI();
