@@ -57,7 +57,7 @@ world.addContactMaterial(defaultContactMaterial);
 // 2. Camera & Renderer
 // ---------------------------------------------------------
 
-const fov = 30;
+const fov = 25;
 const camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(10, 16, 35); // Start at final position
 
@@ -87,7 +87,7 @@ const ambientLight = new THREE.AmbientLight(0x333333); // 약간 밝게 조정
 scene.add(ambientLight);
 
 const spotLight = new THREE.SpotLight(0xffffff, 800);
-spotLight.position.set(0, 8, 0); // 조금 더 높게
+spotLight.position.set(-10, 8, -3); // 조금 더 높게
 spotLight.angle = Math.PI / 4.5;
 spotLight.penumbra = 1;
 spotLight.decay = 2;
@@ -353,6 +353,86 @@ function onMouseUp(event) {
         mouseConstraint = null;
         isDragging = false;
         controls.enabled = true;
+    }
+}
+
+// Mobile Touch Support
+window.addEventListener('touchstart', onTouchStart, { passive: false });
+window.addEventListener('touchmove', onTouchMove, { passive: false });
+window.addEventListener('touchend', onTouchEnd);
+
+function onTouchStart(event) {
+    // 2 Fingers -> Bomb (Right Click equivalent)
+    if (event.touches.length === 2) {
+        // Use the center of the two touches
+        const t1 = event.touches[0];
+        const t2 = event.touches[1];
+        const cx = (t1.clientX + t2.clientX) / 2;
+        const cy = (t1.clientY + t2.clientY) / 2;
+        spawnBomb(cx, cy);
+        event.preventDefault(); // Prevent default zoom/scroll if intended
+        return;
+    }
+
+    // 1 Finger -> Potential Drag (Left Click equivalent)
+    if (event.touches.length === 1) {
+        const t = event.touches[0];
+
+        // Raycast to check if we hit a chair
+        const hit = getRayIntersection(t.clientX, t.clientY);
+
+        if (hit && hit.object) {
+            isDragging = true;
+            controls.enabled = false;
+
+            mouseBody.position.set(hit.point.x, hit.point.y, hit.point.z);
+
+            const normal = new THREE.Vector3();
+            camera.getWorldDirection(normal).negate();
+            dragPlane.setFromNormalAndCoplanarPoint(normal, hit.point);
+
+            const localPoint = new CANNON.Vec3();
+            hit.object.body.pointToLocalFrame(new CANNON.Vec3(hit.point.x, hit.point.y, hit.point.z), localPoint);
+
+            mouseConstraint = new CANNON.PointToPointConstraint(
+                hit.object.body,
+                localPoint,
+                mouseBody,
+                new CANNON.Vec3(0, 0, 0)
+            );
+            world.addConstraint(mouseConstraint);
+
+            // Prevent OrbitControls or Scrolling
+            event.preventDefault();
+        }
+    }
+}
+
+function onTouchMove(event) {
+    if (isDragging && event.touches.length === 1) {
+        const t = event.touches[0];
+
+        mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        if (raycaster.ray.intersectPlane(dragPlane, planeIntersectPoint)) {
+            mouseBody.position.set(planeIntersectPoint.x, planeIntersectPoint.y, planeIntersectPoint.z);
+        }
+
+        event.preventDefault();
+    }
+}
+
+function onTouchEnd(event) {
+    if (isDragging) {
+        // If fingers lifted, stop dragging
+        if (event.touches.length === 0) {
+            world.removeConstraint(mouseConstraint);
+            mouseConstraint = null;
+            isDragging = false;
+            controls.enabled = true;
+        }
     }
 }
 
