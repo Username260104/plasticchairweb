@@ -4,16 +4,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import * as CANNON from 'cannon-es';
 import { GUI } from 'lil-gui';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
 
 // --- Configuration ---
 const CONFIG = {
     VISUAL: {
-        BLOOM_STRENGTH: 0.3,
-        BLOOM_RADIUS: 0.1,
-        BLOOM_THRESHOLD: 1
+    },
+    LIGHTING: {
+        AMBIENT_INTENSITY: 1.0,
+        SPOT_INTENSITY: 800
     },
     EXPLOSION: {
         FIRE_SPEED: 120,
@@ -70,18 +69,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-// Post-Processing
-const composer = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
 
-const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    CONFIG.VISUAL.BLOOM_STRENGTH,
-    CONFIG.VISUAL.BLOOM_RADIUS,
-    CONFIG.VISUAL.BLOOM_THRESHOLD
-);
-composer.addPass(bloomPass);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -110,7 +98,7 @@ spotLight.shadow.mapSize.height = 2048;
 spotLight.shadow.bias = -0.00001; // bias 조정
 scene.add(spotLight);
 
-const BASE_SPOT_INTENSITY = 800;
+
 
 // ---------------------------------------------------------
 // 4. Floor
@@ -395,7 +383,7 @@ const particles = []; // { mesh, velocity, life, maxLife, type }
 let shakeIntensity = 0;
 
 // 조명 상태 상수
-const BASE_AMBIENT_INTENSITY = 52.5;
+
 let lightFlickerTimer = 0;
 
 // --- 1. Triple Click Trigger ---
@@ -489,6 +477,9 @@ function explode(bomb) {
     shakeIntensity = 2; // 강도 증가
     lightFlickerTimer = 8.0; // 조명 깜빡임
     createFlash(center);
+
+    // Trigger HTML Title Explosion
+    triggerTitleExplosion(center);
 
     // 4. Decal (Scorch Mark)
     createDecal(center);
@@ -799,6 +790,66 @@ function createDecal(position) {
     scene.add(decal);
 }
 
+// --- 5. Title Text (HTML Physics) ---
+const titleState = {
+    active: false,
+    position: new THREE.Vector2(0, 0),
+    velocity: new THREE.Vector2(0, 0),
+    rotation: 0,
+    angularVelocity: 0
+};
+
+function triggerTitleExplosion(bombPosition) {
+    if (titleState.active) return; // Already flying
+
+    // 1. Project Explosion to Screen Space (NDC: -1 to +1)
+    const screenPos = bombPosition.clone().project(camera);
+
+    // Check if explosion is "in front" of camera
+    if (screenPos.z > 1) return;
+
+    // 2. Vector from Explosion to Center (0,0)
+    // Explosion at (screenPos.x, screenPos.y) -> Center at (0,0)
+    // Dir = Center - Explosion = (-x, -y)
+    const dir = new THREE.Vector2(-screenPos.x, -screenPos.y);
+    const dist = dir.length();
+
+    // 3. Trigger only if reasonably close to center (visual impact)
+    if (dist < 1.5) { // Pretty wide range
+        titleState.active = true;
+
+        dir.normalize();
+
+        // Impulse
+        const force = 0.05 + Math.random() * 0.05;
+        titleState.velocity.copy(dir).multiplyScalar(force);
+
+        // Random Rotation
+        titleState.angularVelocity = (Math.random() - 0.5) * 0.2;
+    }
+}
+
+function updateTitlePhysics() {
+    if (!titleState.active) return;
+
+    // Physics
+    titleState.velocity.y -= 0.001; // Gravity (down in 2D)
+    titleState.position.add(titleState.velocity);
+    titleState.rotation += titleState.angularVelocity;
+
+    // Apply to DOM
+    const titleEl = document.querySelector('.title-text');
+    if (titleEl) {
+        // Convert NDC units roughly to VW/VH. 
+        // X: +1 = +50vw right
+        // Y: +1 = -50vh up (CSS translate Y is down positive)
+        const tx = titleState.position.x * 50;
+        const ty = -titleState.position.y * 50;
+
+        titleEl.style.transform = `translate(${tx}vw, ${ty}vh) rotate(${titleState.rotation}rad)`;
+    }
+}
+
 function updateParticles(deltaTime) {
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
@@ -927,6 +978,9 @@ function updateShake(deltaTime) {
 let nextFlickerTimer = 0;
 
 function updateLighting(deltaTime) {
+    const baseSpot = CONFIG.LIGHTING.SPOT_INTENSITY;
+    const baseAmb = CONFIG.LIGHTING.AMBIENT_INTENSITY;
+
     if (lightFlickerTimer > 0) {
         lightFlickerTimer -= deltaTime;
         nextFlickerTimer -= deltaTime;
@@ -938,26 +992,26 @@ function updateLighting(deltaTime) {
                 const rand = Math.random();
                 if (rand < 0.6) {
                     spotLight.intensity = 0;
-                    ambientLight.intensity = 0.05;
+                    ambientLight.intensity = baseAmb * 0.05;
                     nextFlickerTimer = 0.03 + Math.random() * 0.07;
                 } else if (rand < 0.9) {
-                    spotLight.intensity = BASE_SPOT_INTENSITY * (0.1 + Math.random() * 0.3);
-                    ambientLight.intensity = 0.2;
+                    spotLight.intensity = baseSpot * (0.1 + Math.random() * 0.3);
+                    ambientLight.intensity = baseAmb * 0.2;
                     nextFlickerTimer = 0.05 + Math.random() * 0.1;
                 } else {
-                    spotLight.intensity = BASE_SPOT_INTENSITY * 1.5;
-                    ambientLight.intensity = 1.2;
+                    spotLight.intensity = baseSpot * 1.5;
+                    ambientLight.intensity = baseAmb * 1.2;
                     nextFlickerTimer = 0.02 + Math.random() * 0.05;
                 }
             } else {
-                spotLight.intensity = BASE_SPOT_INTENSITY;
-                ambientLight.intensity = 1.0;
+                spotLight.intensity = baseSpot;
+                ambientLight.intensity = baseAmb;
                 nextFlickerTimer = 0.1 + Math.random() * 0.3;
             }
         }
     } else {
-        spotLight.intensity = BASE_SPOT_INTENSITY;
-        ambientLight.intensity = 1.0;
+        spotLight.intensity = baseSpot;
+        ambientLight.intensity = baseAmb;
         nextFlickerTimer = 0;
     }
 }
@@ -970,7 +1024,7 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+
 });
 
 function setupGUI() {
@@ -990,11 +1044,11 @@ function setupGUI() {
     const lightFolder = gui.addFolder('Lights');
 
     const ambientFolder = lightFolder.addFolder('Ambient Light');
-    ambientFolder.add(ambientLight, 'intensity', 0, 2).name('Intensity');
+    ambientFolder.add(CONFIG.LIGHTING, 'AMBIENT_INTENSITY', 0, 2).name('Intensity');
     ambientFolder.addColor(ambientLight, 'color').name('Color');
 
     const spotFolder = lightFolder.addFolder('Spot Light');
-    spotFolder.add(spotLight, 'intensity', 0, 2000).name('Intensity');
+    spotFolder.add(CONFIG.LIGHTING, 'SPOT_INTENSITY', 0, 2000).name('Intensity');
     spotFolder.addColor(spotLight, 'color').name('Color');
     spotFolder.add(spotLight.position, 'x', -50, 50).name('Pos X');
     spotFolder.add(spotLight.position, 'y', 0, 50).name('Pos Y');
@@ -1012,10 +1066,7 @@ function setupGUI() {
 
     const explosionFolder = gui.addFolder('Explosion & Visuals');
 
-    const bloomFolder = explosionFolder.addFolder('Bloom Effect');
-    bloomFolder.add(CONFIG.VISUAL, 'BLOOM_STRENGTH', 0, 3).name('Strength').onChange(v => bloomPass.strength = v);
-    bloomFolder.add(CONFIG.VISUAL, 'BLOOM_RADIUS', 0, 1).name('Radius').onChange(v => bloomPass.radius = v);
-    bloomFolder.add(CONFIG.VISUAL, 'BLOOM_THRESHOLD', 0, 1).name('Threshold').onChange(v => bloomPass.threshold = v);
+
 
     const fireFolder = explosionFolder.addFolder('Fire Particles');
     fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SPEED', 0, 100).name('Speed');
@@ -1059,9 +1110,10 @@ function animate() {
     updateParticles(deltaTime);
     updateShake(deltaTime);
     updateLighting(deltaTime);
+    updateTitlePhysics();
 
     controls.update();
-    composer.render();
+    renderer.render(scene, camera);
 }
 
 animate();
