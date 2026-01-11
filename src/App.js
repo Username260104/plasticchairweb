@@ -23,9 +23,9 @@ class App {
         this.world.broadphase = new CANNON.SAPBroadphase(this.world);
         this.world.allowSleep = true;
 
-        this.fov = 30;
+        this.fov = 85;
         this.camera = new THREE.PerspectiveCamera(this.fov, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.set(0, 4, 16);
+        this.camera.position.set(0, 2, 7);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -59,7 +59,7 @@ class App {
 
         // 2. Systems
         this.worldSystem = new WorldSystem(this.scene, this.world, this.camera, this.renderer);
-        this.effectSystem = new EffectSystem(this.scene, this.world, this.camera, this.worldSystem);
+        this.effectSystem = new EffectSystem(this.scene, this.world, this.camera, this.worldSystem, this.controls);
 
         // Bind events
         this.worldSystem.onRightClick = (x, y) => this.effectSystem.spawnBomb(x, y);
@@ -178,6 +178,14 @@ class App {
         fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SPEED', 0, 100).name('Speed');
         fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SIZE_MIN', 0.1, 5).name('Size Min');
         fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SIZE_MAX', 0.1, 5).name('Size Max');
+
+        const textFolder = explosionFolder.addFolder('Text Explosion');
+        textFolder.add(CONFIG.TEXT_EXPLOSION, 'RADIUS', 0, 1000).name('Radius');
+        textFolder.add(CONFIG.TEXT_EXPLOSION, 'FORCE_BASE', 0, 100).name('Force Base');
+        textFolder.add(CONFIG.TEXT_EXPLOSION, 'FORCE_VAR', 0, 20).name('Force Random');
+        textFolder.add(CONFIG.TEXT_EXPLOSION, 'GRAVITY', 0, 2).name('Gravity');
+        textFolder.add(CONFIG.TEXT_EXPLOSION, 'DRAG', 0.9, 1.0).name('Drag');
+        textFolder.add(CONFIG.TEXT_EXPLOSION, 'ROTATION_SPEED', 0, 2).name('Rotation');
     }
 }
 

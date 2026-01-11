@@ -3,11 +3,12 @@ import * as CANNON from 'cannon-es';
 import { CONFIG } from './Config.js';
 
 export class EffectSystem {
-    constructor(scene, world, camera, worldSystem) {
+    constructor(scene, world, camera, worldSystem, controls) {
         this.scene = scene;
         this.world = world;
         this.camera = camera;
         this.worldSystem = worldSystem; // To call fractureChair and access physics objects
+        this.controls = controls;
 
         this.explosions = []; // { mesh, timer, position, body }
         this.particles = [];  // { mesh, velocity, life, maxLife, type }
@@ -31,13 +32,33 @@ export class EffectSystem {
         this.fireColors = [0xff4500, 0xff8c00, 0xffd700];
 
         // Title Animation State
-        this.titleState = {
-            active: false,
-            position: new THREE.Vector2(0, 0),
-            velocity: new THREE.Vector2(0, 0),
-            rotation: 0,
-            angularVelocity: 0
-        };
+        // Title Animation State
+        this.titleChars = [];
+        const titleEl = document.querySelector('.title-text');
+        if (titleEl) {
+            const text = titleEl.innerText;
+            titleEl.innerHTML = '';
+            for (let char of text) {
+                const span = document.createElement('span');
+                span.innerText = char;
+                span.style.display = 'inline-block';
+                // Handle space width 
+                if (char === ' ') {
+                    span.style.width = '0.4em';
+                    span.innerHTML = '&nbsp;';
+                }
+                titleEl.appendChild(span);
+
+                this.titleChars.push({
+                    element: span,
+                    position: new THREE.Vector2(0, 0),
+                    velocity: new THREE.Vector2(0, 0),
+                    rotation: 0,
+                    angularVelocity: 0,
+                    active: false
+                });
+            }
+        }
 
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -400,7 +421,11 @@ export class EffectSystem {
             const ry = (Math.random() - 0.5) * shakePower;
             const rz = (Math.random() - 0.5) * shakePower;
 
-            this.camera.position.add(new THREE.Vector3(rx, ry, rz));
+            const shakeVec = new THREE.Vector3(rx, ry, rz);
+            this.camera.position.add(shakeVec);
+            if (this.controls) {
+                this.controls.target.add(shakeVec);
+            }
 
             this.shakeIntensity -= deltaTime * 2.0;
             if (this.shakeIntensity < 0) this.shakeIntensity = 0;
@@ -446,37 +471,56 @@ export class EffectSystem {
     }
 
     triggerTitleExplosion(bombPosition) {
-        if (this.titleState.active) return;
-
         const screenPos = bombPosition.clone().project(this.camera);
-
         if (screenPos.z > 1) return;
 
-        const dir = new THREE.Vector2(-screenPos.x, -screenPos.y);
-        const dist = dir.length();
+        const bombX = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const bombY = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
 
-        if (dist < 1.5) {
-            this.titleState.active = true;
-            dir.normalize();
+        const explosionRadius = CONFIG.TEXT_EXPLOSION.RADIUS; // pixels
 
-            const force = 0.05 + Math.random() * 0.05;
-            this.titleState.velocity.copy(dir).multiplyScalar(force);
-            this.titleState.angularVelocity = (Math.random() - 0.5) * 0.2;
-        }
+        this.titleChars.forEach(char => {
+            const rect = char.element.getBoundingClientRect();
+            const charX = rect.left + rect.width / 2;
+            const charY = rect.top + rect.height / 2;
+
+            const dx = charX - bombX;
+            const dy = charY - bombY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < explosionRadius) {
+                char.active = true;
+                const len = Math.max(dist, 1);
+                // Normalized direction
+                const nx = dx / len;
+                const ny = dy / len;
+
+                // Force falloff
+                const forceBase = CONFIG.TEXT_EXPLOSION.FORCE_BASE;
+                const forceVar = CONFIG.TEXT_EXPLOSION.FORCE_VAR;
+                const force = (1.0 - dist / explosionRadius) * forceBase + forceVar;
+
+                char.velocity.x += nx * force + (Math.random() - 0.5) * forceVar;
+                char.velocity.y += ny * force + (Math.random() - 0.5) * forceVar;
+                char.angularVelocity += (Math.random() - 0.5) * CONFIG.TEXT_EXPLOSION.ROTATION_SPEED;
+            }
+        });
     }
 
     updateTitlePhysics() {
-        if (!this.titleState.active) return;
+        this.titleChars.forEach(char => {
+            if (!char.active) return;
 
-        this.titleState.velocity.y -= 0.001;
-        this.titleState.position.add(this.titleState.velocity);
-        this.titleState.rotation += this.titleState.angularVelocity;
+            // Gravity
+            char.velocity.y += CONFIG.TEXT_EXPLOSION.GRAVITY;
+            char.velocity.x *= CONFIG.TEXT_EXPLOSION.DRAG; // Air resistance
+            char.velocity.y *= CONFIG.TEXT_EXPLOSION.DRAG;
 
-        const titleEl = document.querySelector('.title-text');
-        if (titleEl) {
-            const tx = this.titleState.position.x * 50;
-            const ty = -this.titleState.position.y * 50;
-            titleEl.style.transform = `translate(${tx}vw, ${ty}vh) rotate(${this.titleState.rotation}rad)`;
-        }
+            char.position.x += char.velocity.x;
+            char.position.y += char.velocity.y;
+            char.rotation += char.angularVelocity;
+
+            char.element.style.transform = `translate(${char.position.x}px, ${char.position.y}px) rotate(${char.rotation}rad)`;
+        });
     }
 }

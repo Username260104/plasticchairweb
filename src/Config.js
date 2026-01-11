@@ -24,6 +24,14 @@ export const CONFIG = {
         PANEL_LENGTH_MIN: 0.01,
         PANEL_LENGTH_MAX: 0.3,
         FRACTURE_RADIUS: 5.0
+    },
+    TEXT_EXPLOSION: {
+        RADIUS: 300,
+        FORCE_BASE: 20,
+        FORCE_VAR: 50,
+        GRAVITY: 0.5,
+        DRAG: 0.99,
+        ROTATION_SPEED: 0.5
     }
 };
 
