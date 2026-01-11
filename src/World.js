@@ -2,8 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { S, LEG_W, LEG_H, SEAT_W, SEAT_H, BACK_W, BACK_H, BACK_D, COM_OFFSET_Y, CONFIG } from './Config.js';
-import { GUI } from 'lil-gui';
+import { CHAIR, CONFIG } from './Config.js';
 
 export class WorldSystem {
     constructor(scene, world, camera, renderer) {
@@ -76,7 +75,7 @@ export class WorldSystem {
     loadChairs() {
         // Chair Setup
         const radius = 4;
-        const chairCount = 8;
+        const chairCount = 11;
         const CHAOS_ANGLE = 0.2;
         const CHAOS_RADIUS = 1.1;
         const CHAOS_ROTATION = 0.3;
@@ -85,7 +84,7 @@ export class WorldSystem {
             './assets/chair.glb?v=' + Date.now(),
             (gltf) => {
                 const originalChair = gltf.scene;
-                const scale = S;
+                const scale = CHAIR.S;
                 originalChair.scale.set(scale, scale, scale);
 
                 originalChair.traverse((child) => {
@@ -117,7 +116,7 @@ export class WorldSystem {
                     this.scene.add(chairMesh);
 
                     // COM 보정
-                    const comOffsetY = COM_OFFSET_Y;
+                    const comOffsetY = CHAIR.COM_OFFSET_Y;
 
                     // Body
                     const body = new CANNON.Body({
@@ -129,19 +128,21 @@ export class WorldSystem {
                     });
 
                     // Shapes from Config
-                    const seatShape = new CANNON.Box(new CANNON.Vec3(SEAT_W / 2, SEAT_H / 2, SEAT_W / 2));
-                    body.addShape(seatShape, new CANNON.Vec3(0, LEG_H + SEAT_H / 2 - comOffsetY, 0));
+                    const seatShape = new CANNON.Box(new CANNON.Vec3(CHAIR.SEAT_W / 2, CHAIR.SEAT_H / 2, CHAIR.SEAT_W / 2));
+                    body.addShape(seatShape, new CANNON.Vec3(0, CHAIR.LEG_H + CHAIR.SEAT_H / 2 - comOffsetY, 0));
 
-                    const backShape = new CANNON.Box(new CANNON.Vec3(BACK_W / 2, BACK_H / 2, BACK_D / 2));
-                    body.addShape(backShape, new CANNON.Vec3(0, LEG_H + SEAT_H + BACK_H / 2 - comOffsetY, -(SEAT_W / 2 - BACK_D / 2)));
+                    const backShape = new CANNON.Box(new CANNON.Vec3(CHAIR.BACK_W / 2, CHAIR.BACK_H / 2, CHAIR.BACK_D / 2));
+                    const backQuat = new CANNON.Quaternion();
+                    backQuat.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), CHAIR.BACK_ANGLE);
+                    body.addShape(backShape, new CANNON.Vec3(0, CHAIR.LEG_H + CHAIR.SEAT_H + CHAIR.BACK_H / 2 - comOffsetY, -(CHAIR.SEAT_W / 2 - CHAIR.BACK_D / 2)), backQuat);
 
-                    const legShape = new CANNON.Box(new CANNON.Vec3(LEG_W / 2, LEG_H / 2, LEG_W / 2));
-                    const legOffset = SEAT_W / 2 - LEG_W / 2;
+                    const legShape = new CANNON.Box(new CANNON.Vec3(CHAIR.LEG_W / 2, CHAIR.LEG_H / 2, CHAIR.LEG_W / 2));
+                    const legOffset = CHAIR.SEAT_W / 2 - CHAIR.LEG_W / 2;
 
-                    body.addShape(legShape, new CANNON.Vec3(-legOffset, LEG_H / 2 - comOffsetY, legOffset));
-                    body.addShape(legShape, new CANNON.Vec3(legOffset, LEG_H / 2 - comOffsetY, legOffset));
-                    body.addShape(legShape, new CANNON.Vec3(-legOffset, LEG_H / 2 - comOffsetY, -legOffset));
-                    body.addShape(legShape, new CANNON.Vec3(legOffset, LEG_H / 2 - comOffsetY, -legOffset));
+                    body.addShape(legShape, new CANNON.Vec3(-legOffset, CHAIR.LEG_H / 2 - comOffsetY, legOffset));
+                    body.addShape(legShape, new CANNON.Vec3(legOffset, CHAIR.LEG_H / 2 - comOffsetY, legOffset));
+                    body.addShape(legShape, new CANNON.Vec3(-legOffset, CHAIR.LEG_H / 2 - comOffsetY, -legOffset));
+                    body.addShape(legShape, new CANNON.Vec3(legOffset, CHAIR.LEG_H / 2 - comOffsetY, -legOffset));
 
                     body.quaternion.setFromEuler(chairMesh.rotation.x, chairMesh.rotation.y, chairMesh.rotation.z);
 
@@ -242,7 +243,7 @@ export class WorldSystem {
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
         if (this.raycaster.ray.intersectPlane(this.dragPlane, this.planeIntersectPoint)) {
-            this.mouseBody.position.set(this.planeIntersectPoint.x, this.planeIntersectPoint.y, this.planeIntersectPoint.z);
+            this.mouseBody.position.set(this.planeIntersectPoint.x, Math.max(this.planeIntersectPoint.y, 0), this.planeIntersectPoint.z);
         }
     }
 
@@ -263,76 +264,62 @@ export class WorldSystem {
         const index = this.objectsToUpdate.indexOf(chairObj);
         if (index > -1) this.objectsToUpdate.splice(index, 1);
 
-        // Debris from mesh structure
-        chairObj.mesh.traverse((child) => {
-            if (child.isMesh) {
-                const worldPos = new THREE.Vector3();
-                const worldQuat = new THREE.Quaternion();
-                const worldScale = new THREE.Vector3();
-                child.getWorldPosition(worldPos);
-                child.getWorldQuaternion(worldQuat);
-                child.getWorldScale(worldScale);
+        const centerPos = chairObj.mesh.position;
+        const count = CONFIG.EXPLOSION.PANEL_COUNT;
 
-                child.geometry.computeBoundingBox();
-                const bbox = child.geometry.boundingBox;
-                const size = new THREE.Vector3();
-                bbox.getSize(size);
-                size.multiply(worldScale);
+        for (let i = 0; i < count; i++) {
+            // Panel dimensions: Thin (Y), Wide (X), Medium Long (Z)
+            const sx = CONFIG.EXPLOSION.PANEL_WIDTH_MIN + Math.random() * (CONFIG.EXPLOSION.PANEL_WIDTH_MAX - CONFIG.EXPLOSION.PANEL_WIDTH_MIN);
+            const sy = CONFIG.EXPLOSION.PANEL_HEIGHT_MIN + Math.random() * (CONFIG.EXPLOSION.PANEL_HEIGHT_MAX - CONFIG.EXPLOSION.PANEL_HEIGHT_MIN);
+            const sz = CONFIG.EXPLOSION.PANEL_LENGTH_MIN + Math.random() * (CONFIG.EXPLOSION.PANEL_LENGTH_MAX - CONFIG.EXPLOSION.PANEL_LENGTH_MIN);
 
-                const halfSize = new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2);
+            const halfSize = new CANNON.Vec3(sx / 2, sy / 2, sz / 2);
 
-                const debrisMesh = child.clone();
-                debrisMesh.material = new THREE.MeshStandardMaterial({
-                    color: 0xffffff,
-                    roughness: 0.8
-                });
-                debrisMesh.position.copy(worldPos);
-                debrisMesh.quaternion.copy(worldQuat);
-                debrisMesh.scale.copy(worldScale);
-                this.scene.add(debrisMesh);
+            const geometry = new THREE.BoxGeometry(sx, sy, sz);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.8
+            });
 
-                const body = new CANNON.Body({
-                    mass: 1.5,
-                    position: new CANNON.Vec3(worldPos.x, worldPos.y, worldPos.z),
-                    quaternion: new CANNON.Quaternion(worldQuat.x, worldQuat.y, worldQuat.z, worldQuat.w),
-                    material: this.defaultMaterial,
-                    linearDamping: 0.1,
-                    angularDamping: 0.1
-                });
-                body.addShape(new CANNON.Box(halfSize));
-                this.world.addBody(body);
+            // Random position near chair center
+            const offset = new THREE.Vector3(
+                (Math.random() - 0.5) * 2.0,
+                (Math.random()) * 2.0 + 0.5,
+                (Math.random() - 0.5) * 2.0
+            );
+            const spawnPos = centerPos.clone().add(offset);
 
-                const dir = new CANNON.Vec3(worldPos.x - explosionCenter.x, worldPos.y - explosionCenter.y, worldPos.z - explosionCenter.z);
-                dir.normalize();
-                const impulse = dir.scale(force * (0.1 + Math.random() * 0.2));
-                body.applyImpulse(impulse, body.position);
-                body.angularVelocity.set((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.copy(spawnPos);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
 
-                this.debrisObjects.push({ mesh: debrisMesh, body: body });
-            }
-        });
+            // Random rotation
+            const q = new THREE.Quaternion();
+            q.setFromEuler(new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI));
+            mesh.quaternion.copy(q);
 
-        // Small splinters
-        const validGeometries = [];
-        chairObj.mesh.traverse((child) => {
-            if (child.isMesh && child.geometry) validGeometries.push(child.geometry);
-        });
+            this.scene.add(mesh);
 
-        if (validGeometries.length > 0) {
-            for (let i = 0; i < CONFIG.EXPLOSION.DEBRIS_SPLINTER_COUNT; i++) {
-                const randomGeo = validGeometries[Math.floor(Math.random() * validGeometries.length)];
-                const randomScale = 0.2 + Math.random() * 0.3;
+            const body = new CANNON.Body({
+                mass: 1.0,
+                position: new CANNON.Vec3(spawnPos.x, spawnPos.y, spawnPos.z),
+                quaternion: new CANNON.Quaternion(q.x, q.y, q.z, q.w),
+                material: this.defaultMaterial,
+                linearDamping: 0.1,
+                angularDamping: 0.1
+            });
+            body.addShape(new CANNON.Box(halfSize));
+            this.world.addBody(body);
 
-                const randomOffset = new THREE.Vector3(
-                    (Math.random() - 0.5) * 1.0, (Math.random()) * 1.0, (Math.random() - 0.5) * 1.0
-                ).applyQuaternion(chairObj.mesh.quaternion);
+            // Explosion impulse
+            const dir = new CANNON.Vec3(spawnPos.x - explosionCenter.x, spawnPos.y - explosionCenter.y, spawnPos.z - explosionCenter.z);
+            dir.normalize();
+            const impulse = dir.scale(force * (0.2 + Math.random() * 0.4));
+            body.applyImpulse(impulse, body.position);
+            body.angularVelocity.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
 
-                const spawnPos = new THREE.Vector3().copy(chairObj.mesh.position).add(randomOffset);
-                const randQuat = new THREE.Quaternion();
-                randQuat.setFromEuler(new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI));
-
-                this.createGenericDebris(randomGeo, spawnPos, randQuat, explosionCenter, force, randomScale);
-            }
+            this.debrisObjects.push({ mesh, body });
         }
     }
 
@@ -397,4 +384,5 @@ export class WorldSystem {
             debris.mesh.quaternion.copy(debris.body.quaternion);
         }
     }
+
 }

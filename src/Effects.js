@@ -139,7 +139,7 @@ export class EffectSystem {
         this.triggerTitleExplosion(center);
         this.createDecal(center);
 
-        for (let i = 0; i < 200; i++) this.spawnParticle(center, 'fire');
+        for (let i = 0; i < CONFIG.EXPLOSION.FIRE_COUNT; i++) this.spawnParticle(center, 'fire');
         for (let i = 0; i < 150; i++) this.spawnParticle(center, 'dust');
         for (let i = 0; i < 100; i++) this.spawnParticle(center, 'spark');
         for (let i = 0; i < CONFIG.EXPLOSION.SOOT_COUNT; i++) this.spawnParticle(center, 'soot');
@@ -153,7 +153,7 @@ export class EffectSystem {
             if (dist < radius) {
                 const dir = body.position.vsub(center);
                 dir.normalize();
-                if (dist < 8) {
+                if (dist < CONFIG.EXPLOSION.FRACTURE_RADIUS) {
                     this.worldSystem.fractureChair(obj, center, force);
                 } else {
                     const impulse = dir.scale(force * (1 - dist / radius));
@@ -227,7 +227,7 @@ export class EffectSystem {
         if (type === 'fire') {
             selectedGeo = this.sphereParticleGeo;
             const c = new THREE.Color(this.fireColors[Math.floor(Math.random() * this.fireColors.length)]);
-            c.multiplyScalar(10.0);
+            c.multiplyScalar(CONFIG.EXPLOSION.FIRE_EMISSIVE_INTENSITY);
             color = c;
 
             life = 0.4 + Math.random() * 0.6;

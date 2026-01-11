@@ -3,6 +3,7 @@ import * as CANNON from 'cannon-es';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import { GUI } from 'lil-gui';
 
@@ -24,7 +25,7 @@ class App {
 
         this.fov = 30;
         this.camera = new THREE.PerspectiveCamera(this.fov, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.set(10, 16, 35);
+        this.camera.position.set(0, 4, 16);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -38,6 +39,12 @@ class App {
         this.composer = new EffectComposer(this.renderer);
         this.renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(this.renderPass);
+
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 1.0;
+        bloomPass.strength = 1.5;
+        bloomPass.radius = 0.4;
+        this.composer.addPass(bloomPass);
 
 
 
@@ -90,7 +97,7 @@ class App {
         this.scene.add(this.ambientLight);
 
         this.spotLight = new THREE.SpotLight(0xffffff, 800);
-        this.spotLight.position.set(0, 8, 0);
+        this.spotLight.position.set(-10, 8, -5);
         this.spotLight.angle = Math.PI / 4.5;
         this.spotLight.penumbra = 1;
         this.spotLight.decay = 2;
@@ -107,6 +114,8 @@ class App {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.composer.setSize(window.innerWidth, window.innerHeight);
+        // We don't have easy access to bloomPass here without storing it, but for now composer resize handles the buffer.
+        // A full implementation would store bloomPass as this.bloomPass and update it, but composer.setSize is usually enough for the passes.
     }
 
     animate() {
