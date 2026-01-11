@@ -1,0 +1,20 @@
+# Git related
+.git
+.gitignore
+
+# Docker related
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE settings
+.vscode
+.idea
+
+# Node modules (if any in future)
+node_modules
+npm-debug.log
+
+# System files
+.DS_Store
+Thumbs.db
