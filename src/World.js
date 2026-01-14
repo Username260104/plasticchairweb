@@ -38,6 +38,16 @@ export class WorldSystem {
         // Floor
         this.planeMesh = null; // Reference for bomb spawn raycast
 
+        // Touch State
+        this.touchState = {
+            mode: 'IDLE', // IDLE, DRAG_CHAIR, PANNING, POTENTIAL_BOMB
+            count: 0,
+            startTime: 0,
+            startPos: new THREE.Vector2(),
+            lastPos: new THREE.Vector2()
+        };
+
+
         // Chair Assets
         this.loader = new GLTFLoader();
         this.dracoLoader = new DRACOLoader();
@@ -49,6 +59,7 @@ export class WorldSystem {
         this.createFloor();
         this.loadChairs();
         this.setupInteraction();
+        this.setupTouchInteraction();
     }
 
     createFloor() {
@@ -254,6 +265,114 @@ export class WorldSystem {
             this.isDragging = false;
             if (this.onDragEnd) this.onDragEnd(); // Enable OrbitControls
         }
+    }
+
+    setupTouchInteraction() {
+        window.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+        window.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+        window.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: false });
+    }
+
+    onTouchStart(event) {
+        // Prevent default browser behavior if needed, but carefully to not block scrolling if unintended
+        // event.preventDefault(); 
+
+        this.touchState.count = event.touches.length;
+
+        if (this.touchState.count === 1) {
+            // Check for Chair Hit
+            const touch = event.touches[0];
+            const hit = this.getRayIntersection(touch.clientX, touch.clientY);
+
+            if (hit && hit.object) {
+                this.touchState.mode = 'DRAG_CHAIR';
+
+                // Reuse Drag Logic
+                this.isDragging = true;
+                if (this.onDragStart) this.onDragStart();
+
+                this.mouseBody.position.set(hit.point.x, hit.point.y, hit.point.z);
+
+                const normal = new THREE.Vector3();
+                this.camera.getWorldDirection(normal).negate();
+                this.dragPlane.setFromNormalAndCoplanarPoint(normal, hit.point);
+
+                const localPoint = new CANNON.Vec3();
+                hit.object.body.pointToLocalFrame(new CANNON.Vec3(hit.point.x, hit.point.y, hit.point.z), localPoint);
+
+                this.mouseConstraint = new CANNON.PointToPointConstraint(
+                    hit.object.body,
+                    localPoint,
+                    this.mouseBody,
+                    new CANNON.Vec3(0, 0, 0)
+                );
+                this.world.addConstraint(this.mouseConstraint);
+            } else {
+                this.touchState.mode = 'IDLE'; // Let OrbitControls handle rotation
+            }
+        } else if (this.touchState.count === 2) {
+            // Potential Bomb or Pan
+            this.touchState.mode = 'POTENTIAL_BOMB';
+            this.touchState.startTime = Date.now();
+
+            // Calculate center of two touches
+            const t1 = event.touches[0];
+            const t2 = event.touches[1];
+            const cx = (t1.clientX + t2.clientX) / 2;
+            const cy = (t1.clientY + t2.clientY) / 2;
+
+            this.touchState.startPos.set(cx, cy);
+            this.touchState.lastPos.set(cx, cy);
+        }
+    }
+
+    onTouchMove(event) {
+        if (this.touchState.mode === 'DRAG_CHAIR' && event.touches.length === 1) {
+            // Drag Logic
+            const touch = event.touches[0];
+            this.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+
+            if (this.raycaster.ray.intersectPlane(this.dragPlane, this.planeIntersectPoint)) {
+                this.mouseBody.position.set(this.planeIntersectPoint.x, Math.max(this.planeIntersectPoint.y, 0), this.planeIntersectPoint.z);
+            }
+        } else if (this.touchState.mode === 'POTENTIAL_BOMB' && event.touches.length === 2) {
+            // Check drift for "Pan" vs "Tap"
+            const t1 = event.touches[0];
+            const t2 = event.touches[1];
+            const cx = (t1.clientX + t2.clientX) / 2;
+            const cy = (t1.clientY + t2.clientY) / 2;
+
+            const dist = this.touchState.startPos.distanceTo(new THREE.Vector2(cx, cy));
+            if (dist > 10) { // Threshold for movement
+                this.touchState.mode = 'PANNING'; // It's a pan, cancel bomb
+            }
+        }
+    }
+
+    onTouchEnd(event) {
+        if (this.touchState.mode === 'DRAG_CHAIR') {
+            // End Drag
+            if (this.isDragging) {
+                this.world.removeConstraint(this.mouseConstraint);
+                this.mouseConstraint = null;
+                this.isDragging = false;
+                if (this.onDragEnd) this.onDragEnd(); // Enable OrbitControls
+            }
+            this.touchState.mode = 'IDLE';
+        } else if (this.touchState.mode === 'POTENTIAL_BOMB') {
+            // Check time
+            const diff = Date.now() - this.touchState.startTime;
+            if (diff < 300) {
+                // Two finger tap confirmed -> BOMB
+                // Use startPos (center of two fingers)
+                if (this.onRightClick) this.onRightClick(this.touchState.startPos.x, this.touchState.startPos.y);
+            }
+            this.touchState.mode = 'IDLE';
+        }
+
+        this.touchState.count = event.touches.length;
     }
 
     // Public methods for Effects interaction

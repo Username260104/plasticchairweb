@@ -84,10 +84,28 @@ class App {
 
         // Custom Cursor
         const customCursor = document.getElementById('custom-cursor');
-        window.addEventListener('mousemove', (e) => {
-            customCursor.style.left = `${e.clientX}px`;
-            customCursor.style.top = `${e.clientY}px`;
-        });
+        const updateCursor = (x, y) => {
+            customCursor.style.left = `${x}px`;
+            customCursor.style.top = `${y}px`;
+        };
+
+        window.addEventListener('mousemove', (e) => updateCursor(e.clientX, e.clientY));
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                updateCursor(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+        window.addEventListener('touchstart', (e) => {
+             if (e.touches.length > 0) {
+                updateCursor(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        // Touch configuration for OrbitControls
+        this.controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.PAN
+        };
 
         this.animate();
     }
