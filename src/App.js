@@ -4,6 +4,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { GlitchPass } from 'three/addons/postprocessing/GlitchPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
+import { AsciiShader } from './Shaders.js';
 
 import { GUI } from 'lil-gui';
 
@@ -40,13 +44,31 @@ class App {
         this.renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(this.renderPass);
 
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 1.0;
-        bloomPass.strength = 1.5;
-        bloomPass.radius = 0.4;
-        this.composer.addPass(bloomPass);
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        this.bloomPass.threshold = 1.0;
+        this.bloomPass.strength = 1.5;
+        this.bloomPass.radius = 0.4;
+        this.composer.addPass(this.bloomPass);
 
+        // Glitch FX
+        this.glitchPass = new GlitchPass();
+        this.glitchPass.enabled = false;
+        this.glitchPass.goWild = false;
+        this.composer.addPass(this.glitchPass);
 
+        // RGB Shift FX
+        this.rgbShiftPass = new ShaderPass(RGBShiftShader);
+        this.rgbShiftPass.enabled = false;
+        this.rgbShiftPass.uniforms['amount'].value = 0.005;
+        this.composer.addPass(this.rgbShiftPass);
+
+        // ASCII FX
+        this.asciiPass = new ShaderPass(AsciiShader);
+        this.asciiPass.enabled = false;
+        this.asciiPass.uniforms['resolution'].value.set(window.innerWidth, window.innerHeight);
+        this.asciiPass.uniforms['scale'].value = 14.0; // Higher Res (Smaller chars)
+        this.asciiPass.uniforms['uColor'].value.setHex(0x00ff33); // Default Green
+        this.composer.addPass(this.asciiPass);
 
         // Controls
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -60,6 +82,9 @@ class App {
         // 2. Systems
         this.worldSystem = new WorldSystem(this.scene, this.world, this.camera, this.renderer);
         this.effectSystem = new EffectSystem(this.scene, this.world, this.camera, this.worldSystem, this.controls);
+
+        // Pass Post-Processing to EffectSystem
+        this.effectSystem.setPostProcessing(this.glitchPass, this.rgbShiftPass, this.asciiPass);
 
         // Bind events
         this.worldSystem.onRightClick = (x, y) => this.effectSystem.spawnBomb(x, y);
@@ -96,7 +121,7 @@ class App {
             }
         }, { passive: false });
         window.addEventListener('touchstart', (e) => {
-             if (e.touches.length > 0) {
+            if (e.touches.length > 0) {
                 updateCursor(e.touches[0].clientX, e.touches[0].clientY);
             }
         }, { passive: false });
@@ -106,6 +131,8 @@ class App {
             ONE: THREE.TOUCH.ROTATE,
             TWO: THREE.TOUCH.PAN
         };
+
+
 
         this.animate();
     }
@@ -147,63 +174,99 @@ class App {
         this.world.step(1 / 60, deltaTime, 10);
 
         this.worldSystem.update(deltaTime);
-        this.effectSystem.update(deltaTime);
+        this.effectSystem.update(deltaTime, elapsedTime);
 
         this.controls.update();
+
+        // Apply Handheld Offset (Render Only)
+        this.effectSystem.applyHandheld(elapsedTime);
         this.composer.render();
+        this.effectSystem.removeHandheld();
     }
 
     setupGUI() {
-        const gui = new GUI();
+        const gui = new GUI({ title: 'Settings' });
         gui.domElement.style.display = 'none';
+
+        // Custom White Theme
+        const customStyle = document.createElement('style');
+        customStyle.innerHTML = `
+            .lil-gui { 
+                --background-color: #ffffff;
+                --text-color: #000000;
+                --title-background-color: #f5f5f5;
+                --widget-color: #e0e0e0;
+                --hover-color: #d0d0d0;
+                --focus-color: #000000;
+                --number-color: #000000;
+                --string-color: #000000;
+            }
+            /* Enforce black title text */
+            .lil-gui .title { color: #000000 !important; font-weight: 600; }
+        `;
+        document.head.appendChild(customStyle);
 
         window.addEventListener('keydown', (event) => {
             if (event.key.toLowerCase() === 's') {
-                if (gui.domElement.style.display === 'none') {
-                    gui.domElement.style.display = 'block';
-                } else {
-                    gui.domElement.style.display = 'none';
-                }
+                gui.domElement.style.display = (gui.domElement.style.display === 'none') ? 'block' : 'none';
             }
         });
 
-        const lightFolder = gui.addFolder('Lights');
-        const ambientFolder = lightFolder.addFolder('Ambient Light');
-        ambientFolder.add(this.ambientLight, 'intensity', 0, 2).name('Intensity');
-        ambientFolder.addColor(this.ambientLight, 'color').name('Color');
+        // 💡 Lights
+        const lightFolder = gui.addFolder('💡 Lights');
+        // Ambient Light
+        lightFolder.add(this.ambientLight, 'intensity', 0, 5).step(0.1).name('Ambient Level');
+        lightFolder.addColor(this.ambientLight, 'color').name('Ambient Color');
 
-        const spotFolder = lightFolder.addFolder('Spot Light');
-        spotFolder.add(this.spotLight, 'intensity', 0, 2000).name('Intensity');
-        spotFolder.addColor(this.spotLight, 'color').name('Color');
-        spotFolder.add(this.spotLight.position, 'x', -50, 50).name('Pos X');
-        spotFolder.add(this.spotLight.position, 'y', 0, 50).name('Pos Y');
-        spotFolder.add(this.spotLight.position, 'z', -50, 50).name('Pos Z');
-        spotFolder.add(this.spotLight, 'angle', 0, Math.PI / 2).name('Angle');
-        spotFolder.add(this.spotLight, 'penumbra', 0, 1).name('Penumbra');
+        // Spot Light (Using EffectSystem's base value to persist through flicker)
+        lightFolder.add(this.effectSystem, 'BASE_SPOT_INTENSITY', 0, 5000).step(50).name('Spot Power');
+        lightFolder.addColor(this.spotLight, 'color').name('Spot Color');
 
-        const cameraFolder = gui.addFolder('Camera');
-        cameraFolder.add(this.camera.position, 'x', -100, 100).name('Pos X');
-        cameraFolder.add(this.camera.position, 'y', -100, 100).name('Pos Y');
-        cameraFolder.add(this.camera.position, 'z', -100, 100).name('Pos Z');
-        cameraFolder.add(this.camera, 'fov', 10, 100).name('FOV').onChange(() => {
+        const posFolder = lightFolder.addFolder('Spot Position');
+        posFolder.add(this.spotLight.position, 'x', -100, 100).step(1).name('X');
+        posFolder.add(this.spotLight.position, 'y', 0, 100).step(1).name('Y');
+        posFolder.add(this.spotLight.position, 'z', -100, 100).step(1).name('Z');
+        posFolder.add(this.spotLight, 'angle', 0, Math.PI / 2).step(0.01).name('Cone Angle');
+        posFolder.add(this.spotLight, 'penumbra', 0, 1).step(0.01).name('Softness');
+
+        // ✨ Bloom Effect
+        const bloomFolder = gui.addFolder('✨ Bloom Effect');
+        bloomFolder.add(this.bloomPass, 'strength', 0, 3).step(0.01).name('Strength');
+        bloomFolder.add(this.bloomPass, 'radius', 0, 1).step(0.01).name('Radius');
+        bloomFolder.add(this.bloomPass, 'threshold', 0, 1).step(0.01).name('Threshold');
+
+        // 🎥 Camera
+        const camFolder = gui.addFolder('🎥 Camera');
+        camFolder.add(this.effectSystem, 'handheldStrength', 0, 10).step(0.1).name('Handheld Shake');
+        camFolder.add(this.camera, 'fov', 10, 120).step(1).name('FOV').onChange(() => {
             this.camera.updateProjectionMatrix();
         });
 
-        const explosionFolder = gui.addFolder('Explosion & Visuals');
+        // 💣 Chaos System
+        const chaosFolder = gui.addFolder('💣 Chaos System');
 
+        chaosFolder.add(CONFIG.EXPLOSION, 'FIRE_COUNT', 0, 5000).step(10).name('Fire Particles');
+        chaosFolder.add(CONFIG.EXPLOSION, 'FIRE_SPEED', 0, 200).step(1).name('Explosion Speed');
+        chaosFolder.add(CONFIG.EXPLOSION, 'SOOT_COUNT', 0, 5000).step(10).name('Smoke Density');
+        chaosFolder.add(CONFIG.EXPLOSION, 'FRACTURE_RADIUS', 1, 20).step(0.5).name('Break Radius');
 
-        const fireFolder = explosionFolder.addFolder('Fire Particles');
-        fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SPEED', 0, 100).name('Speed');
-        fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SIZE_MIN', 0.1, 5).name('Size Min');
-        fireFolder.add(CONFIG.EXPLOSION, 'FIRE_SIZE_MAX', 0.1, 5).name('Size Max');
+        // 🔤 Title Physics
+        const titleFolder = gui.addFolder('🔤 Title Physics');
+        titleFolder.add(CONFIG.TEXT_EXPLOSION, 'RADIUS', 10, 1000).step(10).name('Blast Range');
+        titleFolder.add(CONFIG.TEXT_EXPLOSION, 'FORCE_BASE', 0, 200).step(1).name('Force');
+        titleFolder.add(CONFIG.TEXT_EXPLOSION, 'GRAVITY', 0, 2).step(0.01).name('Gravity');
+        titleFolder.add(CONFIG.TEXT_EXPLOSION, 'ROTATION_SPEED', 0, 5).step(0.1).name('Spin');
 
-        const textFolder = explosionFolder.addFolder('Text Explosion');
-        textFolder.add(CONFIG.TEXT_EXPLOSION, 'RADIUS', 0, 1000).name('Radius');
-        textFolder.add(CONFIG.TEXT_EXPLOSION, 'FORCE_BASE', 0, 100).name('Force Base');
-        textFolder.add(CONFIG.TEXT_EXPLOSION, 'FORCE_VAR', 0, 20).name('Force Random');
-        textFolder.add(CONFIG.TEXT_EXPLOSION, 'GRAVITY', 0, 2).name('Gravity');
-        textFolder.add(CONFIG.TEXT_EXPLOSION, 'DRAG', 0.9, 1.0).name('Drag');
-        textFolder.add(CONFIG.TEXT_EXPLOSION, 'ROTATION_SPEED', 0, 2).name('Rotation');
+        // 📺 FX Debug
+        const fxFolder = gui.addFolder('📺 FX Debug (Secret)');
+        const forced = this.effectSystem.forced;
+
+        fxFolder.add(forced, 'glitch').name('Force Glitch').listen();
+        fxFolder.add(forced, 'wild').name('Force Wild Mode').listen();
+        fxFolder.add(forced, 'rgb').name('Force RGB Shift').listen();
+        fxFolder.add(forced, 'ascii').name('Force ASCII').listen();
+
+        fxFolder.addColor(this.asciiPass.uniforms['uColor'], 'value').name('ASCII Color');
     }
 }
 

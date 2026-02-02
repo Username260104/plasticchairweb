@@ -23,7 +23,10 @@ export const CONFIG = {
         PANEL_HEIGHT_MAX: 0.05,
         PANEL_LENGTH_MIN: 0.01,
         PANEL_LENGTH_MAX: 0.3,
-        FRACTURE_RADIUS: 5.0
+
+        FRACTURE_RADIUS: 5.0,
+        BLAST_RADIUS: 60.0,
+        BLAST_FORCE: 10.0
     },
     TEXT_EXPLOSION: {
         RADIUS: 300,
@@ -48,5 +51,9 @@ export const CHAIR = {
     BACK_H: 0.7562,
     BACK_D: 0.0637,
     BACK_ANGLE: -0.256,
+    SPAWN: {
+        MITOSIS_FORCE: 20,
+        MITOSIS_OFFSET_SCALE: 0.85
+    },
     COM_OFFSET_Y: 0.525
 };

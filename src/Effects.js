@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { CONFIG } from './Config.js';
+import { SimplexNoise } from './Utils.js';
 
 export class EffectSystem {
     constructor(scene, world, camera, worldSystem, controls) {
@@ -62,11 +63,35 @@ export class EffectSystem {
 
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
+
+        // Handheld Camera State
+        this.handheldStrength = 0.2;
+        this.noise = new SimplexNoise();
+        this.originalPosition = new THREE.Vector3();
+        this.originalQuaternion = new THREE.Quaternion();
     }
 
     setLights(ambient, spot) {
         this.ambientLight = ambient;
         this.spotLight = spot;
+    }
+
+    setPostProcessing(glitchPass, rgbShiftPass, asciiPass) {
+        this.glitchPass = glitchPass;
+        this.rgbShiftPass = rgbShiftPass;
+        this.asciiPass = asciiPass;
+        this.glitchTimer = 0;
+        this.glitchPhase = 0; // 0: None, 1: Wild, 2: Shift, 3: Echo
+
+        // Manual Debug Flags
+        this.forced = {
+            glitch: false,
+            wild: false,
+            rgb: false,
+            ascii: false
+        };
+
+        this.asciiDurationTimer = 0; // To sustain ASCII effect
     }
 
     spawnBomb(clientX, clientY) {
@@ -115,12 +140,210 @@ export class EffectSystem {
         }
     }
 
-    update(deltaTime) {
+    update(deltaTime, elapsedTime) {
         this.updateExplosions(deltaTime);
         this.updateParticles(deltaTime);
-        this.updateShake(deltaTime);
+        this.updateShake(deltaTime); // Shake is separate, keep it
         this.updateLighting(deltaTime);
         this.updateTitlePhysics();
+        this.updateGlitch(deltaTime);
+    }
+
+    updateGlitch(deltaTime) {
+        // If manual overrides are active, apply them and skip the timer logic
+        if (this.forced.glitch || this.forced.rgb || this.forced.ascii) {
+            if (this.glitchPass) {
+                this.glitchPass.enabled = this.forced.glitch;
+                this.glitchPass.goWild = this.forced.wild;
+            }
+            if (this.rgbShiftPass) {
+                this.rgbShiftPass.enabled = this.forced.rgb;
+                if (this.forced.rgb) this.rgbShiftPass.uniforms['amount'].value = 0.005;
+            }
+            if (this.asciiPass) {
+                this.asciiPass.enabled = this.forced.ascii;
+            }
+            return; // SKIP AUTOMATION
+        }
+
+        if (this.glitchTimer > 0) {
+            this.glitchTimer -= deltaTime;
+
+            // Handle ASCII Duration (Restored: Sustained Frames 0.1s ~ 0.3s)
+            if (this.asciiDurationTimer > 0) {
+                this.asciiDurationTimer -= deltaTime;
+                if (this.asciiPass) this.asciiPass.enabled = true;
+            } else {
+                if (this.asciiPass) this.asciiPass.enabled = false;
+            }
+
+            // Phase 1: IMPACT (> 7.7) - Total Chaos (0.3s)
+            if (this.glitchTimer > 7.7) {
+                this.glitchPhase = 1;
+
+                // Trigger ASCII with high probability
+                if (this.asciiDurationTimer <= 0 && this.asciiPass) {
+                    if (Math.random() < 0.3) { // 30% chance
+                        // Sustained Duration (High Frame Count)
+                        this.asciiDurationTimer = 0.1 + Math.random() * 0.2;
+                        // Scale Fixed at 14.0 (Fine Grain) - ROLLED BACK "Thick" Randomization
+                        this.asciiPass.uniforms['scale'].value = 14.0;
+                    }
+                }
+            }
+            // Phase 2: DECAY (5.0 ~ 7.7) - Calming Down (2.7s)
+            else if (this.glitchTimer > 5.0) {
+                this.glitchPhase = 2;
+
+                // Disable Wild Glitch from Phase 1
+                if (this.glitchPass) {
+                    this.glitchPass.enabled = false;
+                    this.glitchPass.goWild = false;
+                }
+
+                // Enable RGB Shift
+                if (this.rgbShiftPass) {
+                    this.rgbShiftPass.enabled = true;
+                    // Fade out intensity
+                    const intensity = (this.glitchTimer - 5.0) / 2.7;
+                    this.rgbShiftPass.uniforms['amount'].value = 0.002 + Math.random() * 0.01 * intensity;
+                }
+
+                // Occasional Glitch Spikes
+                if (Math.random() < 0.05) {
+                    if (this.glitchPass) {
+                        this.glitchPass.enabled = true;
+                        this.glitchPass.goWild = (Math.random() < 0.5);
+                    }
+                    if (this.asciiDurationTimer <= 0 && this.asciiPass && Math.random() < 0.2) {
+                        this.asciiDurationTimer = 0.05 + Math.random() * 0.1;
+                        this.asciiPass.uniforms['scale'].value = 14.0; // Fixed Scale
+                    }
+                }
+            }
+            // Phase 3: LONG ECHO (< 5.0) - Intermittent Flickering (5.0s)
+            else {
+                this.glitchPhase = 3;
+
+                // Randomly trigger independent effects
+                // 1. RGB Shift (Common)
+                if (Math.random() < 0.05) {
+                    this.rgbShiftPass.enabled = true;
+                    this.rgbShiftPass.uniforms['amount'].value = Math.random() * 0.005;
+                } else {
+                    this.rgbShiftPass.enabled = false;
+                }
+
+                // 2. Glitch Pass (Very Rare)
+                if (Math.random() < 0.01) {
+                    this.glitchPass.enabled = true;
+                    this.glitchPass.goWild = (Math.random() < 0.3);
+                } else {
+                    this.glitchPass.enabled = false;
+                    this.glitchPass.goWild = false;
+                }
+
+                // 3. ASCII Pass (Very Rare but sustained)
+                if (this.asciiDurationTimer <= 0 && this.asciiPass) {
+                    if (Math.random() < 0.01) { // 1% chance
+                        this.asciiDurationTimer = 0.1 + Math.random() * 0.2; // Hold
+                        this.asciiPass.uniforms['scale'].value = 14.0; // Fixed Scale
+                    }
+                }
+            }
+        } else {
+            // --- PASSIVE ENV GLITCH (No Active Explosion) ---
+
+            // Handle ASCII Duration for passive triggers
+            if (this.asciiDurationTimer > 0) {
+                this.asciiDurationTimer -= deltaTime;
+                if (this.asciiPass) this.asciiPass.enabled = true;
+            } else {
+                if (this.asciiPass) this.asciiPass.enabled = false;
+            }
+
+            // Reset Active Effects
+            if (this.glitchPass) {
+                this.glitchPass.enabled = false;
+                this.glitchPass.goWild = false;
+            }
+            if (this.rgbShiftPass) {
+                this.rgbShiftPass.enabled = false;
+            }
+            this.glitchPhase = 0;
+
+            // 1. Occasional RGB Shift (Environment Noise)
+            // 0.2% chance per frame -> ~once every 8 seconds
+            if (Math.random() < 0.002) {
+                if (this.rgbShiftPass) {
+                    // Trigger a single frame shift (or maybe a few frames? keep it single for now)
+                    // Actually, single frame might be too fast to see.
+                    // But we don't have a timer for RGB. Let's just do it manually.
+                    // The "enabled = false" above resets it next frame immediately.
+                    this.rgbShiftPass.enabled = true;
+                    this.rgbShiftPass.uniforms['amount'].value = 0.003;
+                }
+            }
+
+            // 2. Rare ASCII Burst
+            // Increased Probability: Match RGB Shift (0.002 -> ~once every 8 seconds)
+            if (this.asciiDurationTimer <= 0 && this.asciiPass) {
+                if (Math.random() < 0.002) {
+                    this.asciiDurationTimer = 0.05; // Single short burst
+                    this.asciiPass.uniforms['scale'].value = 14.0; // Fixed Scale
+                }
+            }
+        }
+    }
+
+    applyHandheld(elapsedTime) {
+        if (this.handheldStrength <= 0) return;
+
+        // Save original state
+        this.originalPosition.copy(this.camera.position);
+        this.originalQuaternion.copy(this.camera.quaternion);
+
+        // Fractal Noise approach
+        const time = elapsedTime;
+        const speed1 = 0.2;
+        const amp1 = 0.5;
+        const speed2 = 1.5;
+        const amp2 = 0.05;
+
+        // Strength scaling
+        const strength = this.handheldStrength * 0.02;
+
+        const getNoise = (offset) => {
+            const n1 = this.noise.noise2D(time * speed1, offset);
+            const n2 = this.noise.noise2D(time * speed2, offset + 1000);
+            return (n1 * amp1 + n2 * amp2);
+        };
+
+        const rx = getNoise(0) * strength * 1.5;
+        const ry = getNoise(100) * strength * 1.5;
+        const rz = getNoise(200) * strength * 4.0;
+
+        const tx = getNoise(300) * strength * 5.0;
+        const ty = getNoise(400) * strength * 5.0;
+        const tz = getNoise(500) * strength * 5.0;
+
+        // Apply offsets relative to current camera frame
+        this.camera.translateX(tx);
+        this.camera.translateY(ty);
+        this.camera.translateZ(tz);
+
+        // Apply rotation on top
+        this.camera.rotation.x += rx;
+        this.camera.rotation.y += ry;
+        this.camera.rotation.z += rz;
+    }
+
+    removeHandheld() {
+        if (this.handheldStrength <= 0) return;
+
+        // Restore state
+        this.camera.position.copy(this.originalPosition);
+        this.camera.quaternion.copy(this.originalQuaternion);
     }
 
     updateExplosions(deltaTime) {
@@ -150,8 +373,8 @@ export class EffectSystem {
 
     explode(bomb) {
         const center = bomb.position;
-        const radius = 60;
-        const force = 10;
+        const radius = CONFIG.EXPLOSION.BLAST_RADIUS;
+        const force = CONFIG.EXPLOSION.BLAST_FORCE;
 
         // Visual FX
         this.shakeIntensity = 2;
@@ -159,6 +382,14 @@ export class EffectSystem {
         this.createFlash(center);
         this.triggerTitleExplosion(center);
         this.createDecal(center);
+
+        // Trigger Glitch
+        if (this.glitchPass && this.rgbShiftPass) {
+            this.glitchTimer = 8.0; // Extended Duration for Long Echo
+            this.glitchPhase = 1; // Start Impact
+            this.glitchPass.enabled = true;
+            this.glitchPass.goWild = true; // Start HARD
+        }
 
         for (let i = 0; i < CONFIG.EXPLOSION.FIRE_COUNT; i++) this.spawnParticle(center, 'fire');
         for (let i = 0; i < 150; i++) this.spawnParticle(center, 'dust');
@@ -435,6 +666,9 @@ export class EffectSystem {
     updateLighting(deltaTime) {
         if (!this.spotLight || !this.ambientLight) return;
 
+        // Use the instance variable BASE_SPOT_INTENSITY (controlled by GUI)
+        const baseIntensity = this.BASE_SPOT_INTENSITY;
+
         if (this.lightFlickerTimer > 0) {
             this.lightFlickerTimer -= deltaTime;
             this.nextFlickerTimer -= deltaTime;
@@ -449,24 +683,24 @@ export class EffectSystem {
                         this.ambientLight.intensity = 0.05;
                         this.nextFlickerTimer = 0.03 + Math.random() * 0.07;
                     } else if (rand < 0.9) {
-                        this.spotLight.intensity = this.BASE_SPOT_INTENSITY * (0.1 + Math.random() * 0.3);
+                        this.spotLight.intensity = baseIntensity * (0.1 + Math.random() * 0.3);
                         this.ambientLight.intensity = 0.2;
                         this.nextFlickerTimer = 0.05 + Math.random() * 0.1;
                     } else {
-                        this.spotLight.intensity = this.BASE_SPOT_INTENSITY * 1.5;
+                        this.spotLight.intensity = baseIntensity * 1.5;
                         this.ambientLight.intensity = 1.2;
                         this.nextFlickerTimer = 0.02 + Math.random() * 0.05;
                     }
                 } else {
-                    this.spotLight.intensity = this.BASE_SPOT_INTENSITY;
+                    this.spotLight.intensity = baseIntensity;
                     this.ambientLight.intensity = 1.0;
                     this.nextFlickerTimer = 0.1 + Math.random() * 0.3;
                 }
             }
         } else {
-            this.spotLight.intensity = this.BASE_SPOT_INTENSITY;
-            this.ambientLight.intensity = 1.0;
-            this.nextFlickerTimer = 0;
+            // When not flickering, adhere strictly to the GUI value
+            // We do not reset Ambient here because it is controlled directly by GUI.
+            this.spotLight.intensity = baseIntensity;
         }
     }
 

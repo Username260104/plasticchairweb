@@ -47,6 +47,10 @@ export class WorldSystem {
             lastPos: new THREE.Vector2()
         };
 
+        // Mouse State for Click Detection
+        this.pointerDownTime = 0;
+        this.pointerDownPos = new THREE.Vector2();
+
 
         // Chair Assets
         this.loader = new GLTFLoader();
@@ -57,7 +61,7 @@ export class WorldSystem {
 
     init() {
         this.createFloor();
-        this.loadChairs();
+        this.loadChairModel();
         this.setupInteraction();
         this.setupTouchInteraction();
     }
@@ -83,14 +87,7 @@ export class WorldSystem {
         this.world.addBody(planeBody);
     }
 
-    loadChairs() {
-        // Chair Setup
-        const radius = 4;
-        const chairCount = 11;
-        const CHAOS_ANGLE = 0.2;
-        const CHAOS_RADIUS = 1.1;
-        const CHAOS_ROTATION = 0.3;
-
+    loadChairModel() {
         this.loader.load(
             './assets/chair.glb?v=' + Date.now(),
             (gltf) => {
@@ -105,72 +102,123 @@ export class WorldSystem {
                     }
                 });
 
-                for (let i = 0; i < chairCount; i++) {
-                    const chairMesh = originalChair.clone();
-
-                    // 위치 계산
-                    let angle = (i / chairCount) * Math.PI * 2;
-                    const angleRandomness = (Math.random() - 0.5) * CHAOS_ANGLE;
-                    const radiusRandomness = (Math.random() - 0.5) * CHAOS_RADIUS;
-                    angle += angleRandomness;
-                    const currentRadius = radius + radiusRandomness;
-                    const x = Math.cos(angle) * currentRadius;
-                    const z = Math.sin(angle) * currentRadius;
-                    const y = 0;
-
-                    const rotationRandomness = (Math.random() - 0.5) * CHAOS_ROTATION;
-
-                    chairMesh.position.set(x, y, z);
-                    chairMesh.lookAt(0, y, 0);
-                    chairMesh.rotation.y += rotationRandomness;
-
-                    this.scene.add(chairMesh);
-
-                    // COM 보정
-                    const comOffsetY = CHAIR.COM_OFFSET_Y;
-
-                    // Body
-                    const body = new CANNON.Body({
-                        mass: 10,
-                        position: new CANNON.Vec3(x, y + comOffsetY, z),
-                        material: this.defaultMaterial,
-                        linearDamping: 0.5,
-                        angularDamping: 0.5
-                    });
-
-                    // Shapes from Config
-                    const seatShape = new CANNON.Box(new CANNON.Vec3(CHAIR.SEAT_W / 2, CHAIR.SEAT_H / 2, CHAIR.SEAT_W / 2));
-                    body.addShape(seatShape, new CANNON.Vec3(0, CHAIR.LEG_H + CHAIR.SEAT_H / 2 - comOffsetY, 0));
-
-                    const backShape = new CANNON.Box(new CANNON.Vec3(CHAIR.BACK_W / 2, CHAIR.BACK_H / 2, CHAIR.BACK_D / 2));
-                    const backQuat = new CANNON.Quaternion();
-                    backQuat.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), CHAIR.BACK_ANGLE);
-                    body.addShape(backShape, new CANNON.Vec3(0, CHAIR.LEG_H + CHAIR.SEAT_H + CHAIR.BACK_H / 2 - comOffsetY, -(CHAIR.SEAT_W / 2 - CHAIR.BACK_D / 2)), backQuat);
-
-                    const legShape = new CANNON.Box(new CANNON.Vec3(CHAIR.LEG_W / 2, CHAIR.LEG_H / 2, CHAIR.LEG_W / 2));
-                    const legOffset = CHAIR.SEAT_W / 2 - CHAIR.LEG_W / 2;
-
-                    body.addShape(legShape, new CANNON.Vec3(-legOffset, CHAIR.LEG_H / 2 - comOffsetY, legOffset));
-                    body.addShape(legShape, new CANNON.Vec3(legOffset, CHAIR.LEG_H / 2 - comOffsetY, legOffset));
-                    body.addShape(legShape, new CANNON.Vec3(-legOffset, CHAIR.LEG_H / 2 - comOffsetY, -legOffset));
-                    body.addShape(legShape, new CANNON.Vec3(legOffset, CHAIR.LEG_H / 2 - comOffsetY, -legOffset));
-
-                    body.quaternion.setFromEuler(chairMesh.rotation.x, chairMesh.rotation.y, chairMesh.rotation.z);
-
-                    this.world.addBody(body);
-
-                    this.objectsToUpdate.push({
-                        mesh: chairMesh,
-                        body: body,
-                        comOffsetY: comOffsetY
-                    });
-                }
+                this.chairModel = originalChair; // Save for spawning
+                this.spawnChair(); // Auto-spawn first chair
             },
             undefined,
             (error) => {
                 console.error('모델 로드 오류:', error);
             }
         );
+    }
+
+    spawnChair(parentObj = null) {
+        if (!this.chairModel) return;
+
+        const chairMesh = this.chairModel.clone();
+
+        let x, y, z;
+        let rotationX = 0, rotationY = 0, rotationZ = 0;
+
+        // Force direction for mitosis
+        let splitDir = new CANNON.Vec3(0, 0, 0);
+
+        if (parentObj) {
+            // Mitosis Spawn (Horizontal Split)
+            const parentPos = parentObj.body.position;
+
+            // Random Angle in XZ plane
+            const angle = Math.random() * Math.PI * 2;
+
+            // Direction Vector
+            splitDir.set(Math.cos(angle), 0, Math.sin(angle));
+            splitDir.normalize();
+
+            // Spawn Distance: Seat Width * Scale + small margin
+            // Config S_VAL is 1.5, Seat W is ~1.1
+            // Real Width at scale 1.5 is ~1.65.
+            // We want them to barely touch so they can push off, or slightly separated.
+            // Let's use 1.0 * Scale as offset to ensure they start 'merged' but not 'inside' leg geometry?
+            // Actually, if legs interlock, it's bad. Leg W is small.
+            // Safest: Spawn at Distance = Width * 0.8. They will overlap bodies but maybe clear legs?
+            // User wants "Cell Division" -> Overlap is visual key.
+            // Key fix: Ensure Y is same, but maybe TILT them slightly away? 
+
+            const dist = CHAIR.SEAT_W * CHAIR.S * CHAIR.SPAWN.MITOSIS_OFFSET_SCALE; // Partial overlap for "splitting" look
+
+            x = parentPos.x + splitDir.x * dist;
+            y = parentPos.y; // Keep same height level
+            z = parentPos.z + splitDir.z * dist;
+
+            // Copy Parent Rotation exactly for "Clone" feel, or randomize Y only?
+            // Clone rotation usually looks best for mitosis
+            rotationX = parentObj.mesh.rotation.x;
+            rotationY = parentObj.mesh.rotation.y;
+            rotationZ = parentObj.mesh.rotation.z;
+        } else {
+            // Sky Drop (Initial)
+            x = (Math.random() - 0.5) * 4;
+            z = (Math.random() - 0.5) * 4;
+            y = 15 + Math.random() * 5;
+            rotationX = Math.random() * Math.PI;
+            rotationY = Math.random() * Math.PI * 2;
+            rotationZ = Math.random() * Math.PI;
+        }
+
+        chairMesh.position.set(x, y, z);
+        chairMesh.rotation.set(rotationX, rotationY, rotationZ);
+
+        this.scene.add(chairMesh);
+
+        // COM 보정
+        const comOffsetY = CHAIR.COM_OFFSET_Y;
+
+        // Body
+        const body = new CANNON.Body({
+            mass: 10,
+            position: new CANNON.Vec3(x, y + comOffsetY, z),
+            material: this.defaultMaterial,
+            linearDamping: 0.5,
+            angularDamping: 0.5
+        });
+
+        // Shapes from Config
+        const seatShape = new CANNON.Box(new CANNON.Vec3(CHAIR.SEAT_W / 2, CHAIR.SEAT_H / 2, CHAIR.SEAT_W / 2));
+        body.addShape(seatShape, new CANNON.Vec3(0, CHAIR.LEG_H + CHAIR.SEAT_H / 2 - comOffsetY, 0));
+
+        const backShape = new CANNON.Box(new CANNON.Vec3(CHAIR.BACK_W / 2, CHAIR.BACK_H / 2, CHAIR.BACK_D / 2));
+        const backQuat = new CANNON.Quaternion();
+        backQuat.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), CHAIR.BACK_ANGLE);
+        body.addShape(backShape, new CANNON.Vec3(0, CHAIR.LEG_H + CHAIR.SEAT_H + CHAIR.BACK_H / 2 - comOffsetY, -(CHAIR.SEAT_W / 2 - CHAIR.BACK_D / 2)), backQuat);
+
+        const legShape = new CANNON.Box(new CANNON.Vec3(CHAIR.LEG_W / 2, CHAIR.LEG_H / 2, CHAIR.LEG_W / 2));
+        const legOffset = CHAIR.SEAT_W / 2 - CHAIR.LEG_W / 2;
+
+        body.addShape(legShape, new CANNON.Vec3(-legOffset, CHAIR.LEG_H / 2 - comOffsetY, legOffset));
+        body.addShape(legShape, new CANNON.Vec3(legOffset, CHAIR.LEG_H / 2 - comOffsetY, legOffset));
+        body.addShape(legShape, new CANNON.Vec3(-legOffset, CHAIR.LEG_H / 2 - comOffsetY, -legOffset));
+        body.addShape(legShape, new CANNON.Vec3(legOffset, CHAIR.LEG_H / 2 - comOffsetY, -legOffset));
+
+        body.quaternion.setFromEuler(chairMesh.rotation.x, chairMesh.rotation.y, chairMesh.rotation.z);
+
+        this.world.addBody(body);
+
+        // Mitosis Impulse (Explosive Division)
+        if (parentObj) {
+            const force = CHAIR.SPAWN.MITOSIS_FORCE; // VERY Strong horizontal push to clear overlap instantly
+
+            // Push Child
+            body.applyImpulse(splitDir.scale(force), body.position);
+
+            // Push Parent (Opposite)
+            parentObj.body.applyImpulse(splitDir.scale(-force), parentObj.body.position); // Push with equal force
+        }
+
+        this.objectsToUpdate.push({
+            mesh: chairMesh,
+            body: body,
+            comOffsetY: comOffsetY
+        });
     }
 
     setupInteraction() {
@@ -206,21 +254,17 @@ export class WorldSystem {
     }
 
     onMouseDown(event) {
+        // Record for Click Detection
+        this.pointerDownTime = Date.now();
+        this.pointerDownPos.set(event.clientX, event.clientY);
+
         // Right CLick is handled by App calling Bomb logic
         if (event.button === 2) {
-            // Let App handle this by passing event or callback
-            // For now, we assume App calls World methods or Effects methods
-            // But the event listener is here. 
-            // We need to trigger bomb spawn. Dispatch event or callback?
-            // Or we just check intersection here and call a callback passed in constructor?
             if (this.onRightClick) this.onRightClick(event.clientX, event.clientY);
             return;
         }
 
         // Left Click - Drag
-        // NOTE: controls should be disabled in App if dragging
-        // We will emit an event or callback for drag start
-
         const hit = this.getRayIntersection(event.clientX, event.clientY);
 
         if (hit && hit.object) {
@@ -264,6 +308,18 @@ export class WorldSystem {
             this.mouseConstraint = null;
             this.isDragging = false;
             if (this.onDragEnd) this.onDragEnd(); // Enable OrbitControls
+        }
+
+        // Click Detection (Time < 300ms AND Distance < 5px)
+        const timeDiff = Date.now() - this.pointerDownTime;
+        const dist = this.pointerDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+
+        if (timeDiff < 300 && dist < 5) {
+            // Check if we clicked on a chair
+            const hit = this.getRayIntersection(event.clientX, event.clientY);
+            if (hit && hit.object) {
+                this.spawnChair(hit.object);
+            }
         }
     }
 
