@@ -6,12 +6,12 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { GlitchPass } from 'three/addons/postprocessing/GlitchPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
+// RGBShiftShader Removed
 import { AsciiShader } from './Shaders.js';
 
 import { GUI } from 'lil-gui';
 
-import { CONFIG } from './Config.js';
+import { CONFIG, CAMERA, LIGHT } from './Config.js';
 import { WorldSystem } from './World.js';
 import { EffectSystem } from './Effects.js';
 
@@ -27,9 +27,17 @@ class App {
         this.world.broadphase = new CANNON.SAPBroadphase(this.world);
         this.world.allowSleep = true;
 
-        this.fov = 85;
-        this.camera = new THREE.PerspectiveCamera(this.fov, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.set(0, 2, 7);
+        this.fov = CAMERA.FOV;
+        this.camera = new THREE.PerspectiveCamera(this.fov, window.innerWidth / window.innerHeight, CAMERA.NEAR, CAMERA.FAR);
+        this.camera.position.set(CAMERA.POS.x, CAMERA.POS.y, CAMERA.POS.z);
+        // Apply Initial Rotation from Config (Degree -> Radian)
+        if (CAMERA.ROT) {
+            this.camera.rotation.set(
+                THREE.MathUtils.degToRad(CAMERA.ROT.x),
+                THREE.MathUtils.degToRad(CAMERA.ROT.y),
+                THREE.MathUtils.degToRad(CAMERA.ROT.z)
+            );
+        }
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -48,6 +56,7 @@ class App {
         this.bloomPass.threshold = 1.0;
         this.bloomPass.strength = 1.5;
         this.bloomPass.radius = 0.4;
+        this.bloomPass.enabled = false; // Default Off
         this.composer.addPass(this.bloomPass);
 
         // Glitch FX
@@ -56,11 +65,7 @@ class App {
         this.glitchPass.goWild = false;
         this.composer.addPass(this.glitchPass);
 
-        // RGB Shift FX
-        this.rgbShiftPass = new ShaderPass(RGBShiftShader);
-        this.rgbShiftPass.enabled = false;
-        this.rgbShiftPass.uniforms['amount'].value = 0.005;
-        this.composer.addPass(this.rgbShiftPass);
+        // RGB Shift Removed
 
         // ASCII FX
         this.asciiPass = new ShaderPass(AsciiShader);
@@ -79,15 +84,46 @@ class App {
             RIGHT: null
         };
 
+        // Fix: Update OrbitControls target to match initial Camera Rotation
+        if (CAMERA.ROT) {
+            // 1. Create Euler from Config directly (to avoid OrbitControls overriding camera.rotation)
+            const initialEuler = new THREE.Euler(
+                THREE.MathUtils.degToRad(CAMERA.ROT.x),
+                THREE.MathUtils.degToRad(CAMERA.ROT.y),
+                THREE.MathUtils.degToRad(CAMERA.ROT.z),
+                'XYZ'
+            );
+
+            // 2. Get forward direction
+            const forward = new THREE.Vector3(0, 0, -1);
+            forward.applyEuler(initialEuler);
+
+            // 3. Calculate target point
+            const distance = 10;
+            const target = this.camera.position.clone().add(forward.multiplyScalar(distance));
+
+            // 4. Update controls target
+            this.controls.target.copy(target);
+            this.controls.update();
+        }
+
+        // Debug params for GUI (Degree conversion)
+        this.debugParams = {
+            rotX: 0,
+            rotY: 0,
+            rotZ: 0
+        };
+
         // 2. Systems
         this.worldSystem = new WorldSystem(this.scene, this.world, this.camera, this.renderer);
         this.effectSystem = new EffectSystem(this.scene, this.world, this.camera, this.worldSystem, this.controls);
 
         // Pass Post-Processing to EffectSystem
-        this.effectSystem.setPostProcessing(this.glitchPass, this.rgbShiftPass, this.asciiPass);
+        this.effectSystem.setPostProcessing(this.glitchPass, this.asciiPass);
 
         // Bind events
         this.worldSystem.onRightClick = (x, y) => this.effectSystem.spawnBomb(x, y);
+        this.worldSystem.onMitosis = () => this.effectSystem.triggerMitosisGlitch(); // Connection
         this.worldSystem.onDragStart = () => { this.controls.enabled = false; };
         this.worldSystem.onDragEnd = () => { this.controls.enabled = true; };
 
@@ -126,6 +162,21 @@ class App {
             }
         }, { passive: false });
 
+        // Cursor Interaction Feedback
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 0) customCursor.classList.add('active-left');
+            if (e.button === 1) customCursor.classList.add('active-wheel');
+            if (e.button === 2) customCursor.classList.add('active-right');
+        });
+
+        window.addEventListener('mouseup', () => {
+            customCursor.classList.remove('active-left', 'active-wheel', 'active-right');
+        });
+
+        // Touch feedback (Treat as Left Click)
+        window.addEventListener('touchstart', () => customCursor.classList.add('active-left'), { passive: false });
+        window.addEventListener('touchend', () => customCursor.classList.remove('active-left'));
+
         // Touch configuration for OrbitControls
         this.controls.touches = {
             ONE: THREE.TOUCH.ROTATE,
@@ -138,19 +189,19 @@ class App {
     }
 
     setupLights() {
-        this.ambientLight = new THREE.AmbientLight(0x333333);
+        this.ambientLight = new THREE.AmbientLight(LIGHT.AMBIENT.COLOR, LIGHT.AMBIENT.INTENSITY); // Explicit intensity
         this.scene.add(this.ambientLight);
 
-        this.spotLight = new THREE.SpotLight(0xffffff, 800);
-        this.spotLight.position.set(-10, 8, -5);
-        this.spotLight.angle = Math.PI / 4.5;
-        this.spotLight.penumbra = 1;
-        this.spotLight.decay = 2;
-        this.spotLight.distance = 100;
+        this.spotLight = new THREE.SpotLight(LIGHT.SPOT.COLOR, LIGHT.SPOT.INTENSITY);
+        this.spotLight.position.set(LIGHT.SPOT.POS.x, LIGHT.SPOT.POS.y, LIGHT.SPOT.POS.z);
+        this.spotLight.angle = LIGHT.SPOT.ANGLE;
+        this.spotLight.penumbra = LIGHT.SPOT.PENUMBRA;
+        this.spotLight.decay = LIGHT.SPOT.DECAY;
+        this.spotLight.distance = LIGHT.SPOT.DISTANCE;
         this.spotLight.castShadow = true;
-        this.spotLight.shadow.mapSize.width = 2048;
-        this.spotLight.shadow.mapSize.height = 2048;
-        this.spotLight.shadow.bias = -0.00001;
+        this.spotLight.shadow.mapSize.width = LIGHT.SPOT.SHADOW.MAP_SIZE;
+        this.spotLight.shadow.mapSize.height = LIGHT.SPOT.SHADOW.MAP_SIZE;
+        this.spotLight.shadow.bias = LIGHT.SPOT.SHADOW.BIAS;
         this.scene.add(this.spotLight);
     }
 
@@ -165,6 +216,11 @@ class App {
 
     animate() {
         requestAnimationFrame(() => this.animate());
+
+        // Sync Camera Rotation to Debug Params (Rad -> Deg)
+        this.debugParams.rotX = THREE.MathUtils.radToDeg(this.camera.rotation.x).toFixed(1);
+        this.debugParams.rotY = THREE.MathUtils.radToDeg(this.camera.rotation.y).toFixed(1);
+        this.debugParams.rotZ = THREE.MathUtils.radToDeg(this.camera.rotation.z).toFixed(1);
 
         const elapsedTime = this.clock.getElapsedTime();
         const deltaTime = elapsedTime - this.oldElapsedTime;
@@ -197,7 +253,7 @@ class App {
                 --title-background-color: #f5f5f5;
                 --widget-color: #e0e0e0;
                 --hover-color: #d0d0d0;
-                --focus-color: #000000;
+                --focus-color: #e0e0e0;
                 --number-color: #000000;
                 --string-color: #000000;
             }
@@ -231,6 +287,7 @@ class App {
 
         // ✨ Bloom Effect
         const bloomFolder = gui.addFolder('✨ Bloom Effect');
+        bloomFolder.add(this.bloomPass, 'enabled').name('Enabled'); // Toggle
         bloomFolder.add(this.bloomPass, 'strength', 0, 3).step(0.01).name('Strength');
         bloomFolder.add(this.bloomPass, 'radius', 0, 1).step(0.01).name('Radius');
         bloomFolder.add(this.bloomPass, 'threshold', 0, 1).step(0.01).name('Threshold');
@@ -241,6 +298,17 @@ class App {
         camFolder.add(this.camera, 'fov', 10, 120).step(1).name('FOV').onChange(() => {
             this.camera.updateProjectionMatrix();
         });
+
+        // Real-time Camera Info
+        const camPos = camFolder.addFolder('Position');
+        camPos.add(this.camera.position, 'x').listen().disable();
+        camPos.add(this.camera.position, 'y').listen().disable();
+        camPos.add(this.camera.position, 'z').listen().disable();
+
+        const camRot = camFolder.addFolder('Rotation (Degree)');
+        camRot.add(this.debugParams, 'rotX').listen().disable();
+        camRot.add(this.debugParams, 'rotY').listen().disable();
+        camRot.add(this.debugParams, 'rotZ').listen().disable();
 
         // 💣 Chaos System
         const chaosFolder = gui.addFolder('💣 Chaos System');
@@ -263,10 +331,10 @@ class App {
 
         fxFolder.add(forced, 'glitch').name('Force Glitch').listen();
         fxFolder.add(forced, 'wild').name('Force Wild Mode').listen();
-        fxFolder.add(forced, 'rgb').name('Force RGB Shift').listen();
         fxFolder.add(forced, 'ascii').name('Force ASCII').listen();
 
         fxFolder.addColor(this.asciiPass.uniforms['uColor'], 'value').name('ASCII Color');
+        fxFolder.add(this.asciiPass.uniforms['scale'], 'value', 5, 50).step(1).name('ASCII Resolution');
     }
 }
 

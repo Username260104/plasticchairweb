@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { CONFIG } from './Config.js';
+import { CONFIG, LIGHT } from './Config.js';
 import { SimplexNoise } from './Utils.js';
 
 export class EffectSystem {
@@ -21,7 +21,7 @@ export class EffectSystem {
         this.nextFlickerTimer = 0;
         this.ambientLight = null;
         this.spotLight = null;
-        this.BASE_SPOT_INTENSITY = 800;
+        this.BASE_SPOT_INTENSITY = LIGHT.SPOT.INTENSITY;
 
         // Assets
         const texLoader = new THREE.TextureLoader();
@@ -76,23 +76,24 @@ export class EffectSystem {
         this.spotLight = spot;
     }
 
-    setPostProcessing(glitchPass, rgbShiftPass, asciiPass) {
+    setPostProcessing(glitchPass, asciiPass) {
         this.glitchPass = glitchPass;
-        this.rgbShiftPass = rgbShiftPass;
         this.asciiPass = asciiPass;
         this.glitchTimer = 0;
-        this.glitchPhase = 0; // 0: None, 1: Wild, 2: Shift, 3: Echo
+        this.glitchPhase = 0; // 0: None, 1: Wild, 2: Decay, 3: Echo
 
         // Manual Debug Flags
         this.forced = {
             glitch: false,
             wild: false,
-            rgb: false,
             ascii: false
         };
 
         this.asciiDurationTimer = 0; // To sustain ASCII effect
+        this.shortBurst = false; // Deterministic glitch flag
     }
+
+
 
     spawnBomb(clientX, clientY) {
         this.mouse.x = (clientX / window.innerWidth) * 2 - 1;
@@ -150,15 +151,11 @@ export class EffectSystem {
     }
 
     updateGlitch(deltaTime) {
-        // If manual overrides are active, apply them and skip the timer logic
-        if (this.forced.glitch || this.forced.rgb || this.forced.ascii) {
+        // Manual override check
+        if (this.forced.glitch || this.forced.ascii) {
             if (this.glitchPass) {
                 this.glitchPass.enabled = this.forced.glitch;
                 this.glitchPass.goWild = this.forced.wild;
-            }
-            if (this.rgbShiftPass) {
-                this.rgbShiftPass.enabled = this.forced.rgb;
-                if (this.forced.rgb) this.rgbShiftPass.uniforms['amount'].value = 0.005;
             }
             if (this.asciiPass) {
                 this.asciiPass.enabled = this.forced.ascii;
@@ -169,12 +166,22 @@ export class EffectSystem {
         if (this.glitchTimer > 0) {
             this.glitchTimer -= deltaTime;
 
-            // Handle ASCII Duration (Restored: Sustained Frames 0.1s ~ 0.3s)
+            // Handle ASCII Duration
             if (this.asciiDurationTimer > 0) {
                 this.asciiDurationTimer -= deltaTime;
                 if (this.asciiPass) this.asciiPass.enabled = true;
             } else {
                 if (this.asciiPass) this.asciiPass.enabled = false;
+            }
+
+            // Phase 0: SHORT BURST (Deterministic)
+            if (this.shortBurst) {
+                if (this.glitchPass) {
+                    this.glitchPass.enabled = true;
+                    this.glitchPass.goWild = true;
+                }
+                // ASCII is handled by Duration Timer above
+                return; // Override other phases
             }
 
             // Phase 1: IMPACT (> 7.7) - Total Chaos (0.3s)
@@ -201,14 +208,6 @@ export class EffectSystem {
                     this.glitchPass.goWild = false;
                 }
 
-                // Enable RGB Shift
-                if (this.rgbShiftPass) {
-                    this.rgbShiftPass.enabled = true;
-                    // Fade out intensity
-                    const intensity = (this.glitchTimer - 5.0) / 2.7;
-                    this.rgbShiftPass.uniforms['amount'].value = 0.002 + Math.random() * 0.01 * intensity;
-                }
-
                 // Occasional Glitch Spikes
                 if (Math.random() < 0.05) {
                     if (this.glitchPass) {
@@ -226,15 +225,7 @@ export class EffectSystem {
                 this.glitchPhase = 3;
 
                 // Randomly trigger independent effects
-                // 1. RGB Shift (Common)
-                if (Math.random() < 0.05) {
-                    this.rgbShiftPass.enabled = true;
-                    this.rgbShiftPass.uniforms['amount'].value = Math.random() * 0.005;
-                } else {
-                    this.rgbShiftPass.enabled = false;
-                }
-
-                // 2. Glitch Pass (Very Rare)
+                // 1. Glitch Pass (Very Rare)
                 if (Math.random() < 0.01) {
                     this.glitchPass.enabled = true;
                     this.glitchPass.goWild = (Math.random() < 0.3);
@@ -252,9 +243,10 @@ export class EffectSystem {
                 }
             }
         } else {
-            // --- PASSIVE ENV GLITCH (No Active Explosion) ---
+            // Check for Short Burst Reset
+            this.shortBurst = false;
 
-            // Handle ASCII Duration for passive triggers
+            // Handle residual ASCII duration if any
             if (this.asciiDurationTimer > 0) {
                 this.asciiDurationTimer -= deltaTime;
                 if (this.asciiPass) this.asciiPass.enabled = true;
@@ -262,36 +254,29 @@ export class EffectSystem {
                 if (this.asciiPass) this.asciiPass.enabled = false;
             }
 
-            // Reset Active Effects
             if (this.glitchPass) {
                 this.glitchPass.enabled = false;
                 this.glitchPass.goWild = false;
             }
-            if (this.rgbShiftPass) {
-                this.rgbShiftPass.enabled = false;
-            }
             this.glitchPhase = 0;
+        }
+    }
 
-            // 1. Occasional RGB Shift (Environment Noise)
-            // 0.2% chance per frame -> ~once every 8 seconds
-            if (Math.random() < 0.002) {
-                if (this.rgbShiftPass) {
-                    // Trigger a single frame shift (or maybe a few frames? keep it single for now)
-                    // Actually, single frame might be too fast to see.
-                    // But we don't have a timer for RGB. Let's just do it manually.
-                    // The "enabled = false" above resets it next frame immediately.
-                    this.rgbShiftPass.enabled = true;
-                    this.rgbShiftPass.uniforms['amount'].value = 0.003;
-                }
-            }
+    triggerMitosisGlitch() {
+        // Randomly choose ONE effect (Exclusive OR) to reduce visual noise
+        const useGlitch = Math.random() < 0.5;
 
-            // 2. Rare ASCII Burst
-            // Increased Probability: Match RGB Shift (0.002 -> ~once every 8 seconds)
-            if (this.asciiDurationTimer <= 0 && this.asciiPass) {
-                if (Math.random() < 0.002) {
-                    this.asciiDurationTimer = 0.05; // Single short burst
-                    this.asciiPass.uniforms['scale'].value = 14.0; // Fixed Scale
-                }
+        if (useGlitch) {
+            // Option A: Glitch Pass Only
+            this.shortBurst = true;
+            this.glitchTimer = 0.1; // Reduced duration
+            this.asciiDurationTimer = 0;
+        } else {
+            // Option B: ASCII Pass Only
+            this.shortBurst = false;
+            this.asciiDurationTimer = 0.1;
+            if (this.asciiPass) {
+                this.asciiPass.uniforms['scale'].value = 14.0;
             }
         }
     }
@@ -358,8 +343,10 @@ export class EffectSystem {
             }
 
             if (bomb.timer > 0) {
-                if (Math.random() < 0.4) {
-                    this.spawnParticle(bomb.position, 'smoke');
+                // Sparkler Effect (Burning FUSE)
+                const sparkCount = 3 + Math.floor(Math.random() * 3);
+                for (let k = 0; k < sparkCount; k++) {
+                    this.spawnParticle(bomb.position, 'sparkler');
                 }
             }
             else {
@@ -378,13 +365,13 @@ export class EffectSystem {
 
         // Visual FX
         this.shakeIntensity = 2;
-        this.lightFlickerTimer = 8.0;
+        // this.lightFlickerTimer = 8.0; // Disabled by user request
         this.createFlash(center);
         this.triggerTitleExplosion(center);
         this.createDecal(center);
 
         // Trigger Glitch
-        if (this.glitchPass && this.rgbShiftPass) {
+        if (this.glitchPass) {
             this.glitchTimer = 8.0; // Extended Duration for Long Echo
             this.glitchPhase = 1; // Start Impact
             this.glitchPass.enabled = true;
@@ -521,6 +508,20 @@ export class EffectSystem {
                 (Math.random() - 0.5) * 2
             );
             size = 1.0 + Math.random() * 2.0;
+        } else if (type === 'sparkler') {
+            // New Effect: Bright sparks for fuse - MORE CHAOS
+            color = 0xffd700; // Gold
+            life = 0.1 + Math.random() * 0.3; // Slightly longer variance
+            // Full spherical randomness
+            const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+            const speed = 10 + Math.random() * 20; // High speed variation
+            velocity.copy(dir).multiplyScalar(speed);
+
+            // Add slight upward bias naturally? No, user said "everywhere". 
+            // But usually sparklers shoot out. Let's keep it purely random direction + gravity handles the arc.
+            // Maybe slight bias relative to something? No, pure chaos is requested.
+
+            size = 0.15 + Math.random() * 0.15; // Varied size
         } else { // smoke
             color = 0xaaaaaa;
             life = 1.0 + Math.random();
@@ -582,8 +583,10 @@ export class EffectSystem {
             p.life -= deltaTime;
             const lifeRatio = p.life / p.maxLife;
 
-            if (p.type === 'dust' || p.type === 'spark' || p.type === 'soot') {
-                const gravity = (p.type === 'soot') ? 25 : 15;
+            if (p.type === 'dust' || p.type === 'spark' || p.type === 'soot' || p.type === 'sparkler') {
+                let gravity = 15;
+                if (p.type === 'soot') gravity = 25;
+                if (p.type === 'sparkler') gravity = 30;
                 p.velocity.y -= gravity * deltaTime;
             }
 
@@ -630,6 +633,9 @@ export class EffectSystem {
                 else if (puffProgress < 0.6) opacity = 0.6;
                 else opacity = 0.6 * (1.0 - (puffProgress - 0.6) / 0.4);
                 p.mesh.material.opacity = Math.max(0, opacity);
+            } else if (p.type === 'sparkler') {
+                const s = p.initialScale * lifeRatio;
+                p.mesh.scale.set(s, s, s);
             }
 
             if (p.type !== 'deflagration') {

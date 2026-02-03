@@ -124,45 +124,39 @@ export class WorldSystem {
         let splitDir = new CANNON.Vec3(0, 0, 0);
 
         if (parentObj) {
-            // Mitosis Spawn (Horizontal Split)
+            // Mitosis Spawn (Random Direction in XZ Plane)
             const parentPos = parentObj.body.position;
 
-            // Random Angle in XZ plane
+            // Random Angle in Radians (0 ~ 2PI)
             const angle = Math.random() * Math.PI * 2;
-
-            // Direction Vector
             splitDir.set(Math.cos(angle), 0, Math.sin(angle));
-            splitDir.normalize();
 
-            // Spawn Distance: Seat Width * Scale + small margin
-            // Config S_VAL is 1.5, Seat W is ~1.1
-            // Real Width at scale 1.5 is ~1.65.
-            // We want them to barely touch so they can push off, or slightly separated.
-            // Let's use 1.0 * Scale as offset to ensure they start 'merged' but not 'inside' leg geometry?
-            // Actually, if legs interlock, it's bad. Leg W is small.
-            // Safest: Spawn at Distance = Width * 0.8. They will overlap bodies but maybe clear legs?
-            // User wants "Cell Division" -> Overlap is visual key.
-            // Key fix: Ensure Y is same, but maybe TILT them slightly away? 
+            // Spawn Distance: Ensure it's outside the bounding box
+            // Seat Width is approx 0.4. Scale is 0.X. 
+            // Controlled by Config Factor
+            const dist = CHAIR.SEAT_W * CHAIR.S * CHAIR.SPAWN.MITOSIS_DIST_FACTOR;
 
-            const dist = CHAIR.SEAT_W * CHAIR.S * CHAIR.SPAWN.MITOSIS_OFFSET_SCALE; // Partial overlap for "splitting" look
-
+            // Child moves in splitDir, Parent kicked opposite
             x = parentPos.x + splitDir.x * dist;
-            y = parentPos.y; // Keep same height level
+            y = parentPos.y + 0.2; // Lift slightly to avoid floor friction initially
             z = parentPos.z + splitDir.z * dist;
 
-            // Copy Parent Rotation exactly for "Clone" feel, or randomize Y only?
-            // Clone rotation usually looks best for mitosis
+            // Copy Parent Rotation + Random Offset (Twist)
             rotationX = parentObj.mesh.rotation.x;
-            rotationY = parentObj.mesh.rotation.y;
+            rotationY = parentObj.mesh.rotation.y + (Math.random() - 0.5) * 1.0; // +/- 0.5 rad twist
             rotationZ = parentObj.mesh.rotation.z;
         } else {
-            // Sky Drop (Initial)
-            x = (Math.random() - 0.5) * 4;
-            z = (Math.random() - 0.5) * 4;
-            y = 15 + Math.random() * 5;
-            rotationX = Math.random() * Math.PI;
-            rotationY = Math.random() * Math.PI * 2;
-            rotationZ = Math.random() * Math.PI;
+            // Sky Drop (Initial) - Semi-Random Upright
+            x = (Math.random() - 0.5) * 0.2; // Slight random position
+            z = (Math.random() - 0.5) * 0.2;
+            y = 6;
+
+            // Unstable Landing: Tilted
+            rotationX = (Math.random() - 0.5) * 1.0;
+            rotationZ = (Math.random() - 0.5) * 1.0;
+
+            // Forward Facing Limit (-90 ~ +90 degrees)
+            rotationY = (Math.random() - 0.5) * Math.PI;
         }
 
         chairMesh.position.set(x, y, z);
@@ -203,15 +197,28 @@ export class WorldSystem {
 
         this.world.addBody(body);
 
+        // Initial Drop Velocity (Natural Free Fall)
+        if (!parentObj) {
+            body.velocity.set(0, -1, 0); // Slight downward push, let gravity do the rest
+            body.angularVelocity.set(
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 5
+            );
+        }
+
         // Mitosis Impulse (Explosive Division)
         if (parentObj) {
-            const force = CHAIR.SPAWN.MITOSIS_FORCE; // VERY Strong horizontal push to clear overlap instantly
+            const force = CHAIR.SPAWN.MITOSIS_FORCE;
 
-            // Push Child
+            // Push Child along splitDir
             body.applyImpulse(splitDir.scale(force), body.position);
 
-            // Push Parent (Opposite)
-            parentObj.body.applyImpulse(splitDir.scale(-force), parentObj.body.position); // Push with equal force
+            // Push Parent OPPOSITE to splitDir
+            parentObj.body.applyImpulse(splitDir.scale(-force), parentObj.body.position);
+
+            // Trigger visual glitch
+            if (this.onMitosis) this.onMitosis();
         }
 
         this.objectsToUpdate.push({

@@ -34,6 +34,56 @@
 - **Passive Environment**: 폭발 없이도 상시적으로 발생하는 간헐적 노이즈(RGB Shift, ASCII) 구현.
 - **Debug Tools**: `S`키 메뉴에 FX 제어(Color, Force Toggle) 기능 통합.
 
+### v0.6.1 - Glitch Optimization & Physics Tuning (2026-02-03)
+- **Simplify**: `RGBShiftShader` 제거 및 `GlitchPass` 단일화. 과도한 이펙트 의존성 삭제.
+- **Physics**: 의자 분열(Mitosis)을 **좌/우(Left-Right)** 방향으로 고정하여 엉킴 현상 완전 해결.
+- **Spawn**: 최초 스폰 시 랜덤성(위치/회전)을 복구하되, 착지 안정성을 위해 수직축(Upright)은 유지.
+- **Bugfix**: `Effects.js` 내 미삭제된 RGB 참조 코드로 인한 런타임 에러 수정.
+
+### v0.7.0 - Mitosis Variety (2026-02-03)
+- **Chaotic Mitosis**: 의자 분열 시 고정 방향(좌우)을 폐기하고 360도 전방위 랜덤 분열 로직 적용.
+- **Rotation Noise**: 자식 개체 생성 시 Y축 회전에 무작위 오프셋(Twist)을 추가하여 자연스러움 강화.
+- **Physics**: 엉킴 방지를 위해 스폰 거리를 기존 `1.2`배에서 `1.4`배로 소폭 상향 조정.
+
+### v0.7.1 - Effects Refactoring (2026-02-03)
+- **Code Clean-up**: `Effects.js` 내 중복 정의된 `updateGlitch` 메서드 및 죽은 코드(`RGBShiftPass`) 완전 삭제.
+- **Reliable Glitch**: 분열(Mitosis) 시 글리치 발생 로직을 확률(1%)에서 **확정(Deterministic Short Burst)** 방식으로 변경하여 타격감 보장.
+
+### v0.7.2 - Glitch Tuning (2026-02-03)
+- **Exclusive OR Logic**: 의자 분열 시 `GlitchPass`와 `AsciiPass`가 동시에 터져 과도한 시각적 피로를 유발하던 문제 해결.
+- **Random Selection**: 50:50 확률로 둘 중 하나만 선택되어 발동.
+- **Duration Tweak**: 효과 지속 시간을 `0.25s`에서 `0.15s`로 단축하여 더욱 간결한 타격감(Snap) 연출.
+
+### v0.7.3 - Physics Tuning (2026-02-03)
+- **Force Reduction**: 의자 분열 시 튕겨나가는 힘(`MITOSIS_FORCE`)을 `35`에서 `20`으로 하향 조정하여, 의자가 너무 멀리 날아가는 현상 방지.
+
+### v0.7.4 - Config Refactoring (2026-02-03)
+- **Centralization**: 하드코딩되어 있던 `Camera` 및 `Light` 설정을 `Config.js`로 이관하여 유지보수성 향상.
+
+### v0.7.5 - GUI Enhancements (2026-02-03)
+- **Visibility Fix**: 히든 메뉴(Settings)에서 입력창 선택 시 글씨가 안 보이던 문제 해결 (`focus-color` 변경).
+- **Camera Tracking**: `Camera` 섹션에 현재 위치(Position)와 회전(Rotation) 값을 실시간으로 표시. 특히 **회전 값은 도(Degree) 단위로 자동 변환**하여 직관성 제공.
+- **Config Update**: `Config.js`에 `CAMERA.ROT` 항목을 추가하여 초기 회전 각도를 Degree 단위로 설정 가능.
+
+### v0.7.6 - ASCII Control (2026-02-03)
+- **Resolution Slider**: 히든 메뉴의 `FX Debug` 섹션에 아스키 아트의 입자 크기(Scale)를 조절하는 슬라이더 추가 (범위: 5~50).
+
+### v0.7.7 - Heavy Drop (2026-02-03)
+- **Natural Free Fall**: 초기 의자의 강제 하강 속도를 제거하고, 중력에 의해 자연스럽게 가속되도록 `-1.0`의 약한 힘만 부여.
+- **Unstable Landing**: 착지 시 의자가 비틀거리며 튀도록 `X/Z` 축에 난수 회전(`±1.0`)과 각속도(`±5`) 추가.
+- **Facing Forward**: 초기 생성 시 360도 회전하는 대신, 카메라를 등지지 않도록 앞쪽 180도(`-90°~+90°`) 내에서만 회전.
+
+### v0.7.8 - Mitosis Distance (2026-02-03)
+- **Closer Spawn**: 의자 분열 시 자식 오브젝트가 생성되는 거리 계수를 `1.4`에서 `1.1`로 축소하여 더 밀집된 형태로 증식.
+
+- **Config Exposed**: `Config.js`의 `CHAIR.SPAWN.MITOSIS_DIST_FACTOR` 값으로 거리 조절 가능.
+
+### v0.7.9 - Cursor Feedback (2026-02-03)
+- **Interactive Cursor**: 마우스 입력에 따라 커서가 시각적으로 반응하도록 개선.
+    - **Left Click**: 크기 수축(Scale Down)으로 터치감 표현.
+    - **Wheel Click**: 붉은색 십자(Crosshair) 형태로 변형.
+    - **Right Click**: 가운데가 비어있는 **도넛(Donut)** 형태로 변형되며 `1.3배` 확대 (조준 모드). 모든 변형은 부드러운 애니메이션(`Ease-out`) 처리.
+
 ## Next To-Do
 - [x] AI 페르소나 기반 개발 프로세스 안착.
 - [x] Glitch & ASCII FX 시스템 완성.

@@ -1,7 +1,7 @@
 export const CONFIG = {
     VISUAL: {},
     EXPLOSION: {
-        FIRE_COUNT: 2000,
+        FIRE_COUNT: 5000,
         FIRE_EMISSIVE_INTENSITY: 10.0,
         FIRE_SPEED: 100,
         FIRE_SIZE_MIN: 0.02,
@@ -41,6 +41,35 @@ export const CONFIG = {
 // Global Scale Constants
 // Global Scale Constants
 const S_VAL = 1.5;
+
+export const CAMERA = {
+    FOV: 75,
+    NEAR: 0.1,
+    FAR: 1000,
+    POS: { x: 0, y: 5, z: 5.5 },
+    ROT: { x: -25, y: 0, z: 0 }
+};
+
+export const LIGHT = {
+    AMBIENT: {
+        COLOR: 0x333333,
+        INTENSITY: 1.0
+    },
+    SPOT: {
+        COLOR: 0xffffff,
+        INTENSITY: 800,
+        POS: { x: -10, y: 8, z: -5 },
+        ANGLE: Math.PI / 4.5,
+        PENUMBRA: 1,
+        DECAY: 2,
+        DISTANCE: 100,
+        SHADOW: {
+            MAP_SIZE: 2048,
+            BIAS: -0.00001
+        }
+    }
+};
+
 export const CHAIR = {
     S: S_VAL,
     LEG_W: 0.09306,
@@ -53,7 +82,7 @@ export const CHAIR = {
     BACK_ANGLE: -0.256,
     SPAWN: {
         MITOSIS_FORCE: 20,
-        MITOSIS_OFFSET_SCALE: 0.85
+        MITOSIS_DIST_FACTOR: 0.8
     },
     COM_OFFSET_Y: 0.525
 };
