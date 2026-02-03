@@ -65,7 +65,7 @@ export class EffectSystem {
         this.mouse = new THREE.Vector2();
 
         // Handheld Camera State
-        this.handheldStrength = 0.2;
+        this.handheldStrength = 0.3;
         this.noise = new SimplexNoise();
         this.originalPosition = new THREE.Vector3();
         this.originalQuaternion = new THREE.Quaternion();
@@ -180,73 +180,71 @@ export class EffectSystem {
                     this.glitchPass.enabled = true;
                     this.glitchPass.goWild = true;
                 }
-                // ASCII is handled by Duration Timer above
-                return; // Override other phases
+                return;
             }
 
-            // Phase 1: IMPACT (> 7.7) - Total Chaos (0.3s)
-            if (this.glitchTimer > 7.7) {
+            // Phase 1: IMPACT (> 9.0) - Total Chaos (1.5s)
+            if (this.glitchTimer > 9.0) {
                 this.glitchPhase = 1;
-
+                // High probability in Phase 1
+                if (this.glitchPass) {
+                    // Drastically Reduced Density: 20% chance to be active (Clean Strobe)
+                    const active = Math.random() < 0.4;
+                    this.glitchPass.enabled = active;
+                    if (active) {
+                        this.glitchPass.goWild = (Math.random() < 0.8);
+                    }
+                }
                 // Trigger ASCII with high probability
                 if (this.asciiDurationTimer <= 0 && this.asciiPass) {
-                    if (Math.random() < 0.3) { // 30% chance
-                        // Sustained Duration (High Frame Count)
+                    // Tuned: 10% chance (Less invasive)
+                    if (Math.random() < 0.1) {
                         this.asciiDurationTimer = 0.1 + Math.random() * 0.2;
-                        // Scale Fixed at 14.0 (Fine Grain) - ROLLED BACK "Thick" Randomization
                         this.asciiPass.uniforms['scale'].value = 14.0;
                     }
                 }
             }
-            // Phase 2: DECAY (5.0 ~ 7.7) - Calming Down (2.7s)
+            // Phase 2: DECAY (5.0 ~ 9.0) - Cooldown (4.0s)
             else if (this.glitchTimer > 5.0) {
                 this.glitchPhase = 2;
-
-                // Disable Wild Glitch from Phase 1
-                if (this.glitchPass) {
-                    this.glitchPass.enabled = false;
-                    this.glitchPass.goWild = false;
-                }
-
-                // Occasional Glitch Spikes
+                // Occasional Glitch Spikes (Logic Tuned)
                 if (Math.random() < 0.05) {
                     if (this.glitchPass) {
                         this.glitchPass.enabled = true;
-                        this.glitchPass.goWild = (Math.random() < 0.5);
+                        this.glitchPass.goWild = (Math.random() < 0.2);
                     }
                     if (this.asciiDurationTimer <= 0 && this.asciiPass && Math.random() < 0.2) {
                         this.asciiDurationTimer = 0.05 + Math.random() * 0.1;
-                        this.asciiPass.uniforms['scale'].value = 14.0; // Fixed Scale
+                        this.asciiPass.uniforms['scale'].value = 14.0;
                     }
+                } else {
+                    if (this.glitchPass) this.glitchPass.enabled = false;
                 }
             }
-            // Phase 3: LONG ECHO (< 5.0) - Intermittent Flickering (5.0s)
+            // Phase 3: LONG ECHO (< 5.0) - Ghostly particles (5.0s)
             else {
                 this.glitchPhase = 3;
-
-                // Randomly trigger independent effects
-                // 1. Glitch Pass (Very Rare)
+                // Very Rare Flickers
                 if (Math.random() < 0.01) {
-                    this.glitchPass.enabled = true;
-                    this.glitchPass.goWild = (Math.random() < 0.3);
+                    if (this.glitchPass) {
+                        this.glitchPass.enabled = true;
+                        this.glitchPass.goWild = false;
+                    }
                 } else {
-                    this.glitchPass.enabled = false;
-                    this.glitchPass.goWild = false;
+                    if (this.glitchPass) this.glitchPass.enabled = false;
                 }
 
-                // 3. ASCII Pass (Very Rare but sustained)
+                // Very Rare ASCII
                 if (this.asciiDurationTimer <= 0 && this.asciiPass) {
-                    if (Math.random() < 0.01) { // 1% chance
-                        this.asciiDurationTimer = 0.1 + Math.random() * 0.2; // Hold
-                        this.asciiPass.uniforms['scale'].value = 14.0; // Fixed Scale
+                    if (Math.random() < 0.01) {
+                        this.asciiDurationTimer = 0.1 + Math.random() * 0.2;
+                        this.asciiPass.uniforms['scale'].value = 14.0;
                     }
                 }
             }
         } else {
-            // Check for Short Burst Reset
+            // Cleanup
             this.shortBurst = false;
-
-            // Handle residual ASCII duration if any
             if (this.asciiDurationTimer > 0) {
                 this.asciiDurationTimer -= deltaTime;
                 if (this.asciiPass) this.asciiPass.enabled = true;
@@ -263,22 +261,10 @@ export class EffectSystem {
     }
 
     triggerMitosisGlitch() {
-        // Randomly choose ONE effect (Exclusive OR) to reduce visual noise
-        const useGlitch = Math.random() < 0.5;
-
-        if (useGlitch) {
-            // Option A: Glitch Pass Only
-            this.shortBurst = true;
-            this.glitchTimer = 0.1; // Reduced duration
-            this.asciiDurationTimer = 0;
-        } else {
-            // Option B: ASCII Pass Only
-            this.shortBurst = false;
-            this.asciiDurationTimer = 0.1;
-            if (this.asciiPass) {
-                this.asciiPass.uniforms['scale'].value = 14.0;
-            }
-        }
+        // ALWAYS use normal glitch, no random, no ASCII
+        this.shortBurst = true;
+        this.glitchTimer = 0.15;
+        this.asciiDurationTimer = 0;
     }
 
     applyHandheld(elapsedTime) {
@@ -343,10 +329,10 @@ export class EffectSystem {
             }
 
             if (bomb.timer > 0) {
-                // Sparkler Effect (Burning FUSE)
-                const sparkCount = 3 + Math.floor(Math.random() * 3);
-                for (let k = 0; k < sparkCount; k++) {
-                    this.spawnParticle(bomb.position, 'sparkler');
+                // Fuse Effect: Smoke instead of Sparkler
+                const smokeCount = 3;
+                for (let k = 0; k < smokeCount; k++) {
+                    this.spawnParticle(bomb.position, 'smoke');
                 }
             }
             else {
@@ -372,7 +358,7 @@ export class EffectSystem {
 
         // Trigger Glitch
         if (this.glitchPass) {
-            this.glitchTimer = 8.0; // Extended Duration for Long Echo
+            this.glitchTimer = 10.5; // Extended Duration for Long Echo (10.5s)
             this.glitchPhase = 1; // Start Impact
             this.glitchPass.enabled = true;
             this.glitchPass.goWild = true; // Start HARD
@@ -411,6 +397,7 @@ export class EffectSystem {
                 debris.body.applyImpulse(impulse, debris.body.position);
             }
         }
+
     }
 
     createFlash(position) {
@@ -523,10 +510,18 @@ export class EffectSystem {
 
             size = 0.15 + Math.random() * 0.15; // Varied size
         } else { // smoke
-            color = 0xaaaaaa;
-            life = 1.0 + Math.random();
-            velocity.set((Math.random() - 0.5) * 2, 2 + Math.random() * 2, (Math.random() - 0.5) * 2);
-            size = 1.0;
+            // Tuned Dark Smoke for Fuse
+            color = 0x888888;
+            life = 1.5 + Math.random() * 1.5; // Longer life (1.5 ~ 3.0s)
+
+            // Gentle rise
+            velocity.set(
+                (Math.random() - 0.5) * 0.5,
+                0.5 + Math.random() * 1.0,
+                (Math.random() - 0.5) * 0.5
+            );
+
+            size = 0.3; // Small Fixed Size
         }
 
         const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 });

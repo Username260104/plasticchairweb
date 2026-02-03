@@ -202,7 +202,9 @@ class App {
         this.spotLight.shadow.mapSize.width = LIGHT.SPOT.SHADOW.MAP_SIZE;
         this.spotLight.shadow.mapSize.height = LIGHT.SPOT.SHADOW.MAP_SIZE;
         this.spotLight.shadow.bias = LIGHT.SPOT.SHADOW.BIAS;
+        this.spotLight.target.position.set(LIGHT.SPOT.TARGET.x, LIGHT.SPOT.TARGET.y, LIGHT.SPOT.TARGET.z);
         this.scene.add(this.spotLight);
+        this.scene.add(this.spotLight.target);
     }
 
     onResize() {
@@ -277,6 +279,11 @@ class App {
         // Spot Light (Using EffectSystem's base value to persist through flicker)
         lightFolder.add(this.effectSystem, 'BASE_SPOT_INTENSITY', 0, 5000).step(50).name('Spot Power');
         lightFolder.addColor(this.spotLight, 'color').name('Spot Color');
+
+        const targetFolder = lightFolder.addFolder('Spot Target');
+        targetFolder.add(this.spotLight.target.position, 'x', -100, 100).step(1).name('X');
+        targetFolder.add(this.spotLight.target.position, 'y', -100, 100).step(1).name('Y');
+        targetFolder.add(this.spotLight.target.position, 'z', -100, 100).step(1).name('Z');
 
         const posFolder = lightFolder.addFolder('Spot Position');
         posFolder.add(this.spotLight.position, 'x', -100, 100).step(1).name('X');

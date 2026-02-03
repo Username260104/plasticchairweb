@@ -95,6 +95,28 @@
 - **Zoom & Pan**: 모바일에서 두 손가락 제스처를 시 `PAN`(이동)만 되던 설정을 `DOLLY_PAN`(줌 & 이동)으로 변경.
 - **Touch Action**: `style.css`에 `touch-action: none`을 추가하여 브라우저의 기본 제스처(세로 스크롤 등) 간섭을 차단.
 
+### v0.7.12 - Project Reset (2026-02-04)
+- **Hard Reset**: `git reset --hard origin/main` 명령을 통해 로컬 변경 사항을 초기화하고 원격 저장소(`origin/main`) 상태로 되돌림.
+
+### v0.7.13 - Restoration & Tuning (2026-02-04)
+- **Restoration**: 이전 세션(v0.7.11)의 모바일 UI 및 FX 튜닝 사항을 일괄 복구 및 적용.
+- **Mobile UI**: 제목 폰트 사이즈(`7vw`) 및 터치 액션(`none`), `DOLLY_PAN` 컨트롤 적용 확인.
+- **Glitch FX**:
+    - 폭발 글리치 지속 시간을 `10.5초`로 연장.
+    - Mitosis 시 `ASCII` 없이 `Normal Glitch`만 100% 발생하도록 로직 단순화.
+    - Phase 1~3 확률 디테일 튜닝.
+- **Fuse FX**: 폭탄 심지 효과를 `Sparkler`에서 `Smoke`(Size 0.3, Darker)로 변경하여 가시성 개선.
+- **Light System**:
+    - `Config.js`에 `LIGHT.SPOT.TARGET` 속성 추가 및 좌표 매핑 구현.
+    - 조명 및 카메라 초기 위치값 정밀 튜닝 (Camera LookAt 매커니즘 개선).
+
+### v0.7.14 - Glitch Density Tuning (2026-02-04)
+- **Phase 1 Optimization**:
+    - **Glitch Probability**: **40%**로 상향 조정 (User Manual Tuning).
+    - **Wild Mode Chance**: 발동 시 **80%** 확률로 강한 이펙트(`goWild`) 발생.
+    - **ASCII Probability**: 30% → **10%**로 하향 유지.
+    - **Result**: "깜빡임(Strobe)"의 빈도는 적당히 유지하되, 한 번 터질 때 확실하게 강한 임팩트를 주도록 밸런싱.
+
 ## Next To-Do
 - [x] AI 페르소나 기반 개발 프로세스 안착.
 - [x] Glitch & ASCII FX 시스템 완성.

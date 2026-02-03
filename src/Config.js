@@ -46,8 +46,8 @@ export const CAMERA = {
     FOV: 75,
     NEAR: 0.1,
     FAR: 1000,
-    POS: { x: 0, y: 5, z: 5.5 },
-    ROT: { x: -25, y: 0, z: 0 }
+    POS: { x: -1.80, y: 6.86, z: 7.69 },
+    ROT: { x: -28.40, y: -8.00, z: -4.30 }
 };
 
 export const LIGHT = {
@@ -58,7 +58,8 @@ export const LIGHT = {
     SPOT: {
         COLOR: 0xffffff,
         INTENSITY: 800,
-        POS: { x: -10, y: 8, z: -5 },
+        POS: { x: -5, y: 9, z: 4 },
+        TARGET: { x: 4, y: -10, z: -13 },
         ANGLE: Math.PI / 4.5,
         PENUMBRA: 1,
         DECAY: 2,
