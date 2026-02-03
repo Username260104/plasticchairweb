@@ -180,7 +180,7 @@ class App {
         // Touch configuration for OrbitControls
         this.controls.touches = {
             ONE: THREE.TOUCH.ROTATE,
-            TWO: THREE.TOUCH.PAN
+            TWO: THREE.TOUCH.DOLLY_PAN
         };
 
 

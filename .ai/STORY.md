@@ -84,6 +84,17 @@
     - **Wheel Click**: 붉은색 십자(Crosshair) 형태로 변형.
     - **Right Click**: 가운데가 비어있는 **도넛(Donut)** 형태로 변형되며 `1.3배` 확대 (조준 모드). 모든 변형은 부드러운 애니메이션(`Ease-out`) 처리.
 
+
+### v0.7.10 - Mobile UI Fix (2026-02-03)
+- **Title Visibility**: 모바일 기기(폭 768px 이하)에서 타이틀 텍스트가 너무 작게 보이던 문제를 해결.
+- **Responsive Font**: 모바일 환경에서 `font-size`를 `1.5vw`에서 `7vw`로 대폭 상향 조정.
+- **Refactoring**: `index.html`에 혼재되어 있던 타이틀 스타일을 `style.css`로 통합.
+
+
+### v0.7.11 - Mobile Controls Fix (2026-02-03)
+- **Zoom & Pan**: 모바일에서 두 손가락 제스처를 시 `PAN`(이동)만 되던 설정을 `DOLLY_PAN`(줌 & 이동)으로 변경.
+- **Touch Action**: `style.css`에 `touch-action: none`을 추가하여 브라우저의 기본 제스처(세로 스크롤 등) 간섭을 차단.
+
 ## Next To-Do
 - [x] AI 페르소나 기반 개발 프로세스 안착.
 - [x] Glitch & ASCII FX 시스템 완성.
