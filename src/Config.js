@@ -1,8 +1,8 @@
 export const CONFIG = {
     VISUAL: {},
     EXPLOSION: {
-        FIRE_COUNT: 5000,
-        FIRE_EMISSIVE_INTENSITY: 10.0,
+        FIRE_COUNT: 2000,
+        FIRE_EMISSIVE_INTENSITY: 50.0,
         FIRE_SPEED: 100,
         FIRE_SIZE_MIN: 0.02,
         FIRE_SIZE_MAX: 0.1,

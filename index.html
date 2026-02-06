@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Website</title>
+    <title>Plastic Chair Club</title>
+    <link rel="icon" type="image/png" href="assets/Favicon.png">
     <link rel="stylesheet" href="style.css">
     <script type="importmap">
         {
@@ -20,11 +21,30 @@
 
 <body>
 
+    <div class="marquee-container">
+        <div class="marquee-content">
+            <span>POLYPROPYLENE SUPPORT GROUP MENTAL MAINTENANCE SERVICE</span>
+        </div>
+        <div class="marquee-content" aria-hidden="true">
+            <span>POLYPROPYLENE SUPPORT GROUP MENTAL MAINTENANCE SERVICE</span>
+        </div>
+    </div>
     <div id="canvas-container"></div>
     <div class="title-container">
         <h1 class="title-text">PLASTIC CHAIR CLUB</h1>
     </div>
     <div id="custom-cursor"></div>
+
+    <div class="bottom-nav">
+        <button id="btn-checkin" class="nav-btn">CHECK IN</button>
+        <button id="btn-about" class="nav-btn">ABOUT</button>
+    </div>
+
+    <div id="coming-soon-overlay" class="overlay">
+        <h1 class="overlay-text">COMING SOON</h1>
+    </div>
+
+
     <script type="module" src="src/App.js"></script>
 
 </body>

@@ -524,7 +524,13 @@ export class EffectSystem {
             size = 0.3; // Small Fixed Size
         }
 
-        const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 });
+        const materialParams = { color: color, transparent: true, opacity: 0.8 };
+        if (type === 'fire') {
+            materialParams.blending = THREE.AdditiveBlending;
+            materialParams.depthWrite = false;
+        }
+
+        const material = new THREE.MeshBasicMaterial(materialParams);
         const mesh = new THREE.Mesh(selectedGeo, material);
         mesh.position.copy(position);
 

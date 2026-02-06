@@ -28,7 +28,8 @@ body {
     border-radius: 50%;
     pointer-events: none;
     /* Ignore mouse events so clicks go through */
-    z-index: 9999;
+    z-index: 999999;
+    /* Highest priority */
     transform: translate(-50%, -50%);
     /* Center the dot */
     /* Center the dot */
@@ -136,4 +137,153 @@ body {
     .title-text {
         font-size: 7vw;
     }
+}
+
+/* Scrolling Text Marquee */
+.marquee-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 1.0rem;
+    /* Fixed Height */
+    background-color: #0000FF;
+    z-index: 100000;
+    pointer-events: none;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    /* Centering content vertically */
+    align-items: center;
+    /* Centering content vertically */
+    padding: 0;
+}
+
+.marquee-content {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0;
+    animation: scroll-text 40s linear infinite;
+    line-height: 1.0;
+    /* Force line-height */
+    min-width: 100vw;
+    /* Ensure full screen width for spacing */
+    padding-right: 50px;
+    /* Optional small gap just in case */
+    box-sizing: border-box;
+    justify-content: flex-start;
+    /* Align text to start */
+}
+
+.marquee-content span {
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: #ffffff;
+    white-space: nowrap;
+    line-height: 1.0;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: block;
+    /* Ensure it respects line-height */
+}
+
+@keyframes scroll-text {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+/* Mobile Adjustments for Marquee */
+@media (max-width: 768px) {
+    .marquee-content span {
+        font-size: 3rem;
+    }
+
+    .marquee-container {
+        height: 3rem;
+        /* Mobile height */
+    }
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 1.0rem;
+    /* Fixed Height matching top */
+    pointer-events: none;
+    z-index: 100001;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Center Vertically like top */
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #0000FF;
+}
+
+.nav-btn {
+    pointer-events: auto;
+    background-color: transparent;
+    /* Transparent background */
+    color: #ffffff;
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    /* Match scroll banner */
+    padding: 0;
+    /* Remove padding */
+    margin: 0;
+    border: none;
+    cursor: none;
+    /* Custom cursor */
+    text-transform: uppercase;
+    transition: transform 0.1s;
+    line-height: 1.0;
+    /* Match top banner */
+}
+
+.nav-btn:hover {
+    transform: none;
+    opacity: 0.8;
+}
+
+/* Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0000FF;
+    /* Pure Blue Background */
+    z-index: 200000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease-in-out, visibility 0.5s;
+    pointer-events: none;
+}
+
+.overlay.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.overlay-text {
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 900;
+    font-size: 5vw;
+    color: #ffffff;
+    text-transform: uppercase;
 }

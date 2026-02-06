@@ -149,7 +149,7 @@ export class WorldSystem {
             // Sky Drop (Initial) - Semi-Random Upright
             x = (Math.random() - 0.5) * 0.2; // Slight random position
             z = (Math.random() - 0.5) * 0.2;
-            y = 6;
+            y = 12; /* Increased from 6 to 12 to spawn above camera view */
 
             // Unstable Landing: Tilted
             rotationX = (Math.random() - 0.5) * 1.0;

@@ -117,6 +117,60 @@
     - **ASCII Probability**: 30% → **10%**로 하향 유지.
     - **Result**: "깜빡임(Strobe)"의 빈도는 적당히 유지하되, 한 번 터질 때 확실하게 강한 임팩트를 주도록 밸런싱.
 
+### v0.7.15 - Branding Update (2026-02-06)
+- **Title**: 웹사이트 제목을 `Plastic Chair Club`으로 변경.
+- **Favicon**: `assets/Favicon.png` 아이콘 적용.
+
+### v0.7.16 - Scrolling Text Banner (2026-02-06)
+- **Marquee Effect**: 화면 최상단에 `AN ORDINARY SEAT FOR EXTRAORDINARY THOUGHTS SERVICE` 문구가 무한 스크롤되는 배너 추가.
+- **Design**: Pretendard 900, 대문자, 흰색 텍스트로 강렬한 인상 전달. `mix-blend-mode: difference`를 적용하여 배경색에 관계없이 가독성 확보.
+
+### v0.7.17 - Text Polish (2026-02-06)
+- **Visual Update**: 텍스트 배너의 폰트 사이즈를 `6rem`으로 대폭 키우고, `Pure White` (#FFFFFF) 색상을 적용하여 가시성 극대화.
+- **Micro-tuning**: 텍스트 간격(Spacing)을 미세 조정하여 흐름을 개선.
+
+### v0.7.18 - Font Size Adjustment (2026-02-06)
+- **Style**: 텍스트 배너의 폰트 사이즈를 `6rem`에서 `1rem`으로 축소.
+
+### v0.7.19 - Fire FX Optimization (2026-02-06)
+- **Performance**: 화염(Fire) 파티클 개수를 5,000개에서 2,000개로 60% 감소시켜 폭발 시 랙(Lag)을 완화.
+- **Visual**: `AdditiveBlending` 및 `Emissive Intensity` 상향(10→50)을 통해 개수가 줄어도 더 강렬하고 밝은 화염 표현.
+
+### v0.7.20 - Banner Text Update (2026-02-06)
+- **Content**: 스크롤 배너 텍스트를 "POLYPROPYLENE SUPPORT GROUP MENTAL MAINTENANCE SERVICE"로 변경.
+
+### v0.7.21 - Banner Style Update (2026-02-06)
+- **Style**: 스크롤 배너의 배경색을 투명(Transparent)에서 순수 파랑(#0000FF)으로 변경.
+
+### v0.7.22 - UI Feature Update (2026-02-06)
+- **Feature**: 화면 좌/우 하단에 `Check In`, `About` 버튼 추가.
+- **UI**: 버튼 클릭 시 "COMING SOON" 오버레이가 페이드인(Fade-in) 되며 3초 후 사라지는 기능 구현.
+- **Style**: 버튼 및 오버레이에 `Pretendard Black` 폰트와 `#0000FF` 테마 적용.
+
+### v0.7.23 - UI Refinement (2026-02-06)
+- **Style**: 하단 버튼(`Check In`, `About`)을 화면 모서리에 완전히 밀착시킴 (Padding 제거).
+- **Typography**: 버튼 텍스트 크기를 상단 스크롤 배너와 동일한 `1rem`으로 조정.
+
+### v0.7.24 - Footer Band Design (2026-02-06)
+- **Design**: 하단 `bottom-nav`에 파란색 배경(#0000FF)을 적용하여 상단 배너와 대칭되는 "띠" 형태의 디자인 구현.
+- **Layout**: 버튼의 Padding을 제거하고 배경을 투명하게 변경하여, 텍스트가 띠 위에 얹혀져 좌우 끝에 밀착된 형태로 수정.
+
+### v0.7.25 - UI Alignment Fix (2026-02-06)
+- **Fix**: 상단 배너와 하단 배너의 높이가 미세하게 다른 문제 수정.
+- **Action**: 두 컨테이너의 `height`를 `1.0rem`으로 강제 고정하고 `line-height: 1.0`을 명시하여 픽셀 퍼펙트한 대칭 구현.
+
+### v0.7.26 - Cursor Z-Index Fix (2026-02-06)
+- **Fix**: 커스텀 커서가 오버레이나 네비게이션 바 아래에 가려지는 문제 수정.
+- **Action**: `#custom-cursor`의 `z-index`를 `999999`로 상향 조정하여 최상위 레이어에 위치하도록 변경.
+
+### v0.7.27 - Spawn Height Adjustment (2026-02-06)
+- **Fix**: 의자 생성 시 카메라 시야 내에서 스폰되는 현상 수정.
+- **Action**: 초기 스폰 높이(`y`)를 `6`에서 `12`로 변경하여 화면 밖에서 떨어지도록 개선.
+
+### v0.7.28 - Marquee Simplification (2026-02-06)
+- **Design**: 상단 스크롤 배너의 텍스트가 너무 많다는 피드백 반영.
+- **Action**: 반복되는 텍스트를 줄이고, `marquee-content`에 `min-width: 100vw`를 적용하여 텍스트 사이에 충분한 여백(Gap)을 추가. "한 번에 한 줄씩" 지나가는 듯한 여유로운 연출 구현.
+
 ## Next To-Do
 - [x] AI 페르소나 기반 개발 프로세스 안착.
 - [x] Glitch & ASCII FX 시스템 완성.

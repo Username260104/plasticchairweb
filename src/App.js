@@ -185,6 +185,9 @@ class App {
 
 
 
+
+        this.setupUI();
+
         this.animate();
     }
 
@@ -240,6 +243,33 @@ class App {
         this.effectSystem.applyHandheld(elapsedTime);
         this.composer.render();
         this.effectSystem.removeHandheld();
+    }
+
+    setupUI() {
+        const btnCheckIn = document.getElementById('btn-checkin');
+        const btnAbout = document.getElementById('btn-about');
+        const overlay = document.getElementById('coming-soon-overlay');
+        // Removed overlayText usage as it's static
+
+        const showOverlay = (e) => {
+            e.stopPropagation(); // Prevent click from propagating to canvas
+            overlay.classList.remove('hidden'); // Ensure hidden class is removed if used
+            overlay.classList.add('visible');
+
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                overlay.classList.remove('visible');
+            }, 3000);
+        };
+
+        if (btnCheckIn) btnCheckIn.addEventListener('click', showOverlay);
+        if (btnAbout) btnAbout.addEventListener('click', showOverlay);
+
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                overlay.classList.remove('visible');
+            });
+        }
     }
 
     setupGUI() {
