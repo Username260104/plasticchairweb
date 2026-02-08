@@ -152,10 +152,9 @@ body {
     pointer-events: none;
     overflow: hidden;
     display: flex;
-    justify-content: center;
-    /* Centering content vertically */
+    justify-content: flex-start;
+    /* Align start to prevent centering issue */
     align-items: center;
-    /* Centering content vertically */
     padding: 0;
 }
 
@@ -198,24 +197,15 @@ body {
     }
 }
 
-/* Mobile Adjustments for Marquee */
-@media (max-width: 768px) {
-    .marquee-content span {
-        font-size: 3rem;
-    }
-
-    .marquee-container {
-        height: 3rem;
-        /* Mobile height */
-    }
-}
+/* Mobile Adjustments for Marquee - REMOVED */
 
 /* Bottom Navigation */
 .bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
-    width: 100vw;
+    width: 100%;
+    /* Changed from 100vw to 100% to prevent overflow */
     height: 1.0rem;
     /* Fixed Height matching top */
     pointer-events: none;
@@ -224,7 +214,8 @@ body {
     justify-content: space-between;
     align-items: center;
     /* Center Vertically like top */
-    padding: 0;
+    padding: 0 20px;
+    /* Added safety padding for rounded corners */
     box-sizing: border-box;
     background-color: #0000FF;
 }

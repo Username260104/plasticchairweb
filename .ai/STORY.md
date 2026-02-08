@@ -171,6 +171,16 @@
 - **Design**: 상단 스크롤 배너의 텍스트가 너무 많다는 피드백 반영.
 - **Action**: 반복되는 텍스트를 줄이고, `marquee-content`에 `min-width: 100vw`를 적용하여 텍스트 사이에 충분한 여백(Gap)을 추가. "한 번에 한 줄씩" 지나가는 듯한 여유로운 연출 구현.
 
+### v0.7.29 - Marquee Alignment Fix (2026-02-06)
+- **Fix**: 스크롤 배너 텍스트가 화면 중간에서 갑자기 나타나는 현상 수정.
+- **Root Cause**: `marquee-container`의 `justify-content`가 `center`로 설정되어 있어, 시작점이 화면 중앙으로 이동되어 있었음.
+- **Action**: 정렬을 `flex-start`로 변경하여 텍스트가 화면 오른쪽 끝(오프스크린)에서 자연스럽게 진입하도록 수정.
+
+### v0.7.30 - Mobile Layout Final Fix (2026-02-08)
+- **Fix**: 모바일 환경에서 상단 띠가 두껍게 나오고 하단 메뉴 오른쪽이 잘리는 문제 해결.
+- **Action**: `style.css`에서 `marquee-container`의 모바일 전용 미디어 쿼리(3rem 강제)를 삭제하여 데스크탑과 동일한 `1.0rem` 높이 적용.
+- **Action**: `bottom-nav`의 너비를 `100vw`에서 `100%`로 변경하고, 양옆에 `padding: 20px`를 추가하여 라운드 코너 디스플레이 대응.
+
 ## Next To-Do
 - [x] AI 페르소나 기반 개발 프로세스 안착.
 - [x] Glitch & ASCII FX 시스템 완성.
