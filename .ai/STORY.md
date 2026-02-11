@@ -231,3 +231,6 @@
 ### v0.9.9 - Guide Text & Spacing (2026-02-12)
 - **Text**: 가이드 문구를 `INTERACT & MOVE` → `Move`, `PANNING` → `Panning`으로 간소화 (User Feedback).
 - **Spacing**: 줄간격(`line-height`)을 `0.4`에서 **`0.6`**으로 완화하여 가독성과 스타일의 균형 조절.
+
+### v0.9.10 - Auto-Hide Guide (2026-02-12)
+- **UX**: 모바일 가이드 텍스트가 **로딩 5초 후 자동으로 Fade-Out** 되도록 CSS Animation(`5s delay`, `1s duration`) 적용. 시야 방해 최소화.

@@ -262,6 +262,15 @@ body {
     mix-blend-mode: difference;
     /* Invert color based on background */
     text-align: left;
+    animation: fadeOut 1s ease-out 5s forwards;
+    /* Disappear after 5s */
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
 }
 
 @media (max-width: 768px) {

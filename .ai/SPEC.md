@@ -43,7 +43,7 @@
 - **텍스트 배너(Scrolling Text)**: 상단에 브랜드 메시지가 무한 반복되는 Marquee 효과.
 - **모바일 가이드(Mobile Guide)**: 화면 우측 하단(파란 띠 위)에 터치 조작법 표시 (모바일 전용).
     - 문구: 3줄 구성 (`1 FINGER: Move`, `2 FINGER: Panning`, `2 FINGER TAP: ???`).
-    - 디자인: `mix-blend-mode: difference`를 적용하여 배경색에 따라 반전되는 텍스트.
+    - 디자인: `mix-blend-mode: difference`를 적용하여 배경색에 따라 반전되는 텍스트. **로딩 5초 후 자동 숨김(Fade Out).**
 - **체크인(Check-In)**:
     - **입력**: 이름, 연락처, 인스타그램 ID (3필드).
     - **디자인**: 라벨 없는 미니멀 스타일, 파란색 배경(#0000FF), 얇은 인풋바(Height 30px), 넓은 간격(Gap 50px).
