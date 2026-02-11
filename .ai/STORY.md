@@ -197,3 +197,6 @@
 - **Feature**: 화면 우측 상단에 GitHub 저장소로 이동하는 링크 아이콘 추가.
 - **Design**: Minimal SVG 아이콘(White), Hover 시 Scale/Opacity 효과 적용 (`z-index: 100002`).
 - **UX**: 스크롤 시에도 항상 노출되도록 `fixed` 포지셔닝 적용.
+
+### v0.9.1 - Documentation Update (2026-02-12)
+- **README**: 프로젝트 타이틀을 간소화 ("Plastic Chair Club").

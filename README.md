@@ -1,4 +1,4 @@
-# 🪑 Plastic Chair Club (Polypropylene Support Group)
+# 🪑 Plastic Chair Club
 
 **"A Digital Sanctuary for the Ubiquitous Monobloc Chair"**
 
