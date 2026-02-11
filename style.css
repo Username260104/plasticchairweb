@@ -241,6 +241,35 @@ body {
     /* Match top banner */
 }
 
+.mobile-guide {
+    display: none;
+    position: fixed;
+    bottom: 1.5rem;
+    /* Above the 1.0rem nav bar + padding */
+    left: 6px;
+    z-index: 100002;
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 500;
+    font-size: 0.7rem;
+    color: #ffffff;
+    white-space: pre-line;
+    /* Handle line breaks */
+    line-height: 0.6;
+    /* Reduced line height for tighter spacing */
+    opacity: 1.0;
+    /* Full opacity for blend mode */
+    pointer-events: none;
+    mix-blend-mode: difference;
+    /* Invert color based on background */
+    text-align: left;
+}
+
+@media (max-width: 768px) {
+    .mobile-guide {
+        display: block;
+    }
+}
+
 .nav-btn:hover {
     transform: none;
     opacity: 0.8;

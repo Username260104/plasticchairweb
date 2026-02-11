@@ -200,3 +200,34 @@
 
 ### v0.9.1 - Documentation Update (2026-02-12)
 - **README**: 프로젝트 타이틀을 간소화 ("Plastic Chair Club").
+
+### v0.9.2 - Mobile Guide (2026-02-12)
+- **Feature**: 모바일 환경에서만 보이는 인터랙션 가이드 텍스트 추가.
+- **UI**: 우측 하단 네비게이션 바 위에 표시 (`1 FINGER: INTERACT & MOVE / 2 FINGER: PANNING / 2 FINGER TAP: ???`).
+- **Style**: 작은 폰트(0.7rem), 흰색, 우측 정렬. PC 환경(`>768px`)에서는 숨김 처리.
+
+### v0.9.3 - Mobile Guide Style (2026-02-12)
+- **Design**: 모바일 가이드 텍스트를 3줄로 줄바꿈 처리하여 가독성 개선.
+- **Visual**: `mix-blend-mode: difference`를 적용하여 배경색(흰색/파랑)에 따라 텍스트 색상이 자동 반전되도록 수정.
+
+### v0.9.4 - Guide Spacing (2026-02-12)
+- **Style**: 모바일 가이드 텍스트의 줄간격(`line-height`)을 `1.4`에서 `1.1`로 축소하여 더 밀집된 형태로 개선.
+
+### v0.9.5 - Guide Spacing Fix (2026-02-12)
+- **Style**: 모바일 가이드 줄간격을 `1.1`에서 `0.9`로 재조정하여 확실한 밀집 효과 적용.
+
+### v0.9.6 - Guide Layout Tightening (2026-02-12)
+- **Compact**: 줄간격을 `0.9`에서 **`0.75`**로 극한까지 축소하여 시각적 덩어리감 강화.
+- **Alignment**: 우측 여백(`right`)을 `20px`에서 **`0`**으로 변경하여 화면 모서리에 완전히 밀착.
+
+### v0.9.7 - Guide Alignment Fix (2026-02-12)
+- **Position**: 모바일 가이드 위치를 우측(`right: 0`)에서 좌측(`left: 20px`)으로 변경.
+- **Alignment**: 텍스트 정렬도 좌측(`text-align: left`)으로 수정하여 가독성 확보.
+
+### v0.9.8 - Extreme Typos (2026-02-12)
+- **Position**: 좌측 여백(`left`)을 `20px`에서 **`6px`**로 줄여 화면 경계에 바짝 붙임.
+- **Spacing**: 줄간격(`line-height`)을 **`0.4`**로 설정하여 텍스트가 서로 겹쳐 보이는 듯한 강렬한 타이포그래피 연출.
+
+### v0.9.9 - Guide Text & Spacing (2026-02-12)
+- **Text**: 가이드 문구를 `INTERACT & MOVE` → `Move`, `PANNING` → `Panning`으로 간소화 (User Feedback).
+- **Spacing**: 줄간격(`line-height`)을 `0.4`에서 **`0.6`**으로 완화하여 가독성과 스타일의 균형 조절.
