@@ -442,3 +442,20 @@ body {
     cursor: not-allowed;
     color: #ddd;
 }
+
+/* GitHub Link Icon */
+.github-link {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100002;
+    /* Above marquee and nav */
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
+    cursor: pointer;
+}
+
+.github-link:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}

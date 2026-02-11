@@ -46,6 +46,10 @@
     - **디자인**: 라벨 없는 미니멀 스타일, 파란색 배경(#0000FF), 얇은 인풋바(Height 30px), 넓은 간격(Gap 50px).
     - **동작**: 'CHECK IN' 버튼으로 호출. 배경 클릭 닫기 불가(X버튼 전용). 입력 중 단축키 차단.
     - **데이터**: Google Apps Script Web App으로 `POST` 전송.
+- **GitHub 링크**:
+    - **위치**: 화면 우측 상단 고정 (Top/Right 20px).
+    - **기능**: 클릭 시 새 탭에서 프로젝트 GitHub 저장소로 이동.
+    - **디자인**: 흰색 Minimal SVG 아이콘. Hover 시 확대 및 투명도 증가.
 
 ## 4. 파일 구조 (Architecture)
 - `src/App.js`: 메인 진입점. 렌더 루프, 씬 설정, 시스템 통합.

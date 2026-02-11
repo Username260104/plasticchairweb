@@ -192,3 +192,8 @@
     - **Interaction**: 배경 클릭 시 닫기 동작을 방지하고, 오직 'X' 버튼으로만 닫히도록 변경 (오작동 방지).
     - **Input Safety**: 입력 중 'S' 키(설정 단축키)가 트리거되지 않도록 예외 처리.
 - **Integration**: Google Apps Script 연동 (`FormData` + `fetch`), `name="phone"`, `name="instagram"` 파라미터 매핑 수정.
+
+### v0.9.0 - GitHub Link (2026-02-12)
+- **Feature**: 화면 우측 상단에 GitHub 저장소로 이동하는 링크 아이콘 추가.
+- **Design**: Minimal SVG 아이콘(White), Hover 시 Scale/Opacity 효과 적용 (`z-index: 100002`).
+- **UX**: 스크롤 시에도 항상 노출되도록 `fixed` 포지셔닝 적용.
