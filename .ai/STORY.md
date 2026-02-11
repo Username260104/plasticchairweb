@@ -176,12 +176,19 @@
 - **Root Cause**: `marquee-container`의 `justify-content`가 `center`로 설정되어 있어, 시작점이 화면 중앙으로 이동되어 있었음.
 - **Action**: 정렬을 `flex-start`로 변경하여 텍스트가 화면 오른쪽 끝(오프스크린)에서 자연스럽게 진입하도록 수정.
 
-### v0.7.30 - Mobile Layout Final Fix (2026-02-08)
-- **Fix**: 모바일 환경에서 상단 띠가 두껍게 나오고 하단 메뉴 오른쪽이 잘리는 문제 해결.
-- **Action**: `style.css`에서 `marquee-container`의 모바일 전용 미디어 쿼리(3rem 강제)를 삭제하여 데스크탑과 동일한 `1.0rem` 높이 적용.
-- **Action**: `bottom-nav`의 너비를 `100vw`에서 `100%`로 변경하고, 양옆에 `padding: 20px`를 추가하여 라운드 코너 디스플레이 대응.
-
-## Next To-Do
 - [x] AI 페르소나 기반 개발 프로세스 안착.
 - [x] Glitch & ASCII FX 시스템 완성.
+- [x] Check-In 기능 구현 (Google Apps Script 연동).
 - [ ] 추가 콘텐츠 기획 (예: 새로운 오브젝트, 게임 모드 등).
+
+### v0.8.0 - Check-In Feature (2026-02-11)
+- **Feature**: 'CHECK IN' 버튼 클릭 시 나타나는 모달 폼 구현.
+- **Design Refresh**:
+    - **Minimalism**: 기존 모달 박스/테두리를 제거하고 투명 배경 위 입력창만 배치.
+    - **Layout**: 입력창 간격을 `50px`로 대폭 확대하여 시원한 레이아웃 적용.
+    - **Styling**: `30px` 높이의 얇은 입력창, 파란색 배경(#0000FF) 및 흰색 텍스트, 라벨 제거(Placeholder 대체).
+- **UX Improvement**:
+    - **Title Removal**: 'CHECK IN' 텍스트 제거로 심플함 강조.
+    - **Interaction**: 배경 클릭 시 닫기 동작을 방지하고, 오직 'X' 버튼으로만 닫히도록 변경 (오작동 방지).
+    - **Input Safety**: 입력 중 'S' 키(설정 단축키)가 트리거되지 않도록 예외 처리.
+- **Integration**: Google Apps Script 연동 (`FormData` + `fetch`), `name="phone"`, `name="instagram"` 파라미터 매핑 수정.

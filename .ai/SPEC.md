@@ -41,9 +41,15 @@
 - **아스키 아트(ASCII Art)**: `ShaderPass`를 활용한 8단계 명도 코드 변환. GUI를 통해 **해상도(Scale 5~50)** 및 색상 조절 가능.
 - **커서 인터랙션(Cursor)**: 마우스 입력에 따라 시각적 반응 제공 (좌클릭: 수축 / 휠: 십자 / 우클릭: 진동).
 - **텍스트 배너(Scrolling Text)**: 상단에 브랜드 메시지가 무한 반복되는 Marquee 효과.
+- **체크인(Check-In)**:
+    - **입력**: 이름, 연락처, 인스타그램 ID (3필드).
+    - **디자인**: 라벨 없는 미니멀 스타일, 파란색 배경(#0000FF), 얇은 인풋바(Height 30px), 넓은 간격(Gap 50px).
+    - **동작**: 'CHECK IN' 버튼으로 호출. 배경 클릭 닫기 불가(X버튼 전용). 입력 중 단축키 차단.
+    - **데이터**: Google Apps Script Web App으로 `POST` 전송.
 
 ## 4. 파일 구조 (Architecture)
 - `src/App.js`: 메인 진입점. 렌더 루프, 씬 설정, 시스템 통합.
 - `src/World.js`: 3D 객체 생성(초기 낙하 물리 포함), 물리 연산, 마우스/터치 인터랙션 로직.
 - `src/Effects.js`: 폭발, 파티클 등 특수 효과 관리.
 - `src/Config.js`: 상수 및 설정값(Camera, Light, Spawn 등) 중앙 관리.
+- `src/CheckIn.js`: 체크인 모달 제어 및 폼 데이터 전송 로직.

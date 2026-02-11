@@ -278,3 +278,167 @@ body {
     color: #ffffff;
     text-transform: uppercase;
 }
+
+/* ------------------------------------------------------------- */
+/* Check-In Modal (Redesigned)                                   */
+/* ------------------------------------------------------------- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 200001;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+.modal.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Container: Transparent, No Border, Wide Gap */
+.modal-content {
+    position: relative;
+    background-color: transparent;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    /* Space between Title and Form */
+    pointer-events: auto;
+}
+
+#checkin-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+    /* Space between Inputs */
+    width: 100%;
+}
+
+.close-btn {
+    position: absolute;
+    top: -60px;
+    right: 0;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #0000FF;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+.modal-title {
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 900;
+    color: #0000FF;
+    margin: 0;
+    /* Handled by gap */
+    font-size: 2.5rem;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+}
+
+/* Form Group Wrapper */
+.form-group {
+    margin: 0;
+    padding: 0;
+    width: 250px;
+    /* Fixed Width */
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+/* Labels Hidden */
+.form-group label {
+    display: none;
+}
+
+/* Input Fields: Thin, Blue, White Text */
+.form-group input {
+    width: 100%;
+    height: 30px;
+    /* Explicit Thin Height */
+    background-color: #0000FF;
+    border: none;
+    padding: 0 10px;
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 500;
+    font-size: 0.85rem;
+    /* Smaller Font */
+    color: #ffffff;
+    outline: none;
+    border-radius: 0;
+    box-sizing: border-box;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.form-group input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.form-group input:focus {
+    background-color: #0000CC;
+    /* Slight darken on focus */
+}
+
+/* Submit Button: Matches Input Style exactly */
+.submit-btn {
+    width: 250px;
+    height: 30px;
+    /* Match Input Height */
+    padding: 0;
+    background-color: #0000FF;
+    color: #ffffff;
+    border: 1px solid #0000FF;
+    /* Thin Border */
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    font-weight: 900;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin: 0;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.submit-btn:hover {
+    background-color: transparent;
+    color: #0000FF;
+}
+
+.submit-btn:disabled {
+    background-color: #8888ff;
+    border-color: #8888ff;
+    cursor: not-allowed;
+    color: #ddd;
+}

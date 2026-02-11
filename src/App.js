@@ -14,6 +14,7 @@ import { GUI } from 'lil-gui';
 import { CONFIG, CAMERA, LIGHT } from './Config.js';
 import { WorldSystem } from './World.js';
 import { EffectSystem } from './Effects.js';
+import { CheckIn } from './CheckIn.js';
 
 class App {
     constructor() {
@@ -246,10 +247,11 @@ class App {
     }
 
     setupUI() {
-        const btnCheckIn = document.getElementById('btn-checkin');
+        // Initialize Check-In System
+        this.checkIn = new CheckIn();
+
         const btnAbout = document.getElementById('btn-about');
         const overlay = document.getElementById('coming-soon-overlay');
-        // Removed overlayText usage as it's static
 
         const showOverlay = (e) => {
             e.stopPropagation(); // Prevent click from propagating to canvas
@@ -262,7 +264,6 @@ class App {
             }, 3000);
         };
 
-        if (btnCheckIn) btnCheckIn.addEventListener('click', showOverlay);
         if (btnAbout) btnAbout.addEventListener('click', showOverlay);
 
         if (overlay) {
@@ -295,6 +296,11 @@ class App {
         document.head.appendChild(customStyle);
 
         window.addEventListener('keydown', (event) => {
+            // Check In Modal Input Focus Check
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
             if (event.key.toLowerCase() === 's') {
                 gui.domElement.style.display = (gui.domElement.style.display === 'none') ? 'block' : 'none';
             }
