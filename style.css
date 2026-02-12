@@ -434,8 +434,8 @@ html {
     padding: 0 10px;
     font-family: "Pretendard Variable", Pretendard, sans-serif;
     font-weight: 500;
-    font-size: 0.85rem;
-    /* Smaller Font */
+    font-size: 16px;
+    /* Prevent iOS Zoom (Must be >= 16px) */
     color: #ffffff;
     outline: none;
     border-radius: 0;
