@@ -9,3 +9,7 @@ Desktop.ini
 # Python
 __pycache__/
 *.py[cod]
+
+# AI Config
+.ai/GEMINI.md
+.ai/CONVENTION.md

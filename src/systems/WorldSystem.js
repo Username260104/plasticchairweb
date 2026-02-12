@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { CHAIR, CONFIG } from './Config.js';
+import { CHAIR, CONFIG } from '../Config.js';
 
 export class WorldSystem {
     constructor(scene, world, camera, renderer) {
@@ -68,11 +68,11 @@ export class WorldSystem {
 
     createFloor() {
         // Visual
-        const planeGeometry = new THREE.PlaneGeometry(2000, 2000);
+        const planeGeometry = new THREE.PlaneGeometry(CONFIG.WORLD.FLOOR.SIZE, CONFIG.WORLD.FLOOR.SIZE);
         const planeMaterial = new THREE.MeshStandardMaterial({
-            color: 0xcccccc,
-            roughness: 0.8,
-            metalness: 0.1
+            color: CONFIG.WORLD.FLOOR.COLOR,
+            roughness: CONFIG.WORLD.FLOOR.ROUGHNESS,
+            metalness: CONFIG.WORLD.FLOOR.METALNESS
         });
         this.planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
         this.planeMesh.rotation.x = -Math.PI / 2;

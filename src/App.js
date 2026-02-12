@@ -7,24 +7,24 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { GlitchPass } from 'three/addons/postprocessing/GlitchPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 // RGBShiftShader Removed
-import { AsciiShader } from './Shaders.js';
+import { AsciiShader } from './utils/Shaders.js';
 
 import { GUI } from 'lil-gui';
 
 import { CONFIG, CAMERA, LIGHT } from './Config.js';
-import { WorldSystem } from './World.js';
-import { EffectSystem } from './Effects.js';
+import { WorldSystem } from './systems/WorldSystem.js';
+import { EffectSystem } from './systems/EffectSystem.js';
 import { CheckIn } from './CheckIn.js';
 
 class App {
     constructor() {
         // 1. Core Setup
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x050505);
-        this.scene.fog = new THREE.Fog(0x050505, 20, 100);
+        this.scene.background = new THREE.Color(CONFIG.VISUAL.FOG.COLOR);
+        this.scene.fog = new THREE.Fog(CONFIG.VISUAL.FOG.COLOR, CONFIG.VISUAL.FOG.NEAR, CONFIG.VISUAL.FOG.FAR);
 
         this.world = new CANNON.World();
-        this.world.gravity.set(0, -9.82, 0);
+        this.world.gravity.set(CONFIG.WORLD.GRAVITY.x, CONFIG.WORLD.GRAVITY.y, CONFIG.WORLD.GRAVITY.z);
         this.world.broadphase = new CANNON.SAPBroadphase(this.world);
         this.world.allowSleep = true;
 
@@ -54,10 +54,10 @@ class App {
         this.composer.addPass(this.renderPass);
 
         this.bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        this.bloomPass.threshold = 1.0;
-        this.bloomPass.strength = 1.5;
-        this.bloomPass.radius = 0.4;
-        this.bloomPass.enabled = false; // Default Off
+        this.bloomPass.threshold = CONFIG.VISUAL.BLOOM.THRESHOLD;
+        this.bloomPass.strength = CONFIG.VISUAL.BLOOM.STRENGTH;
+        this.bloomPass.radius = CONFIG.VISUAL.BLOOM.RADIUS;
+        this.bloomPass.enabled = CONFIG.VISUAL.BLOOM.ENABLED;
         this.composer.addPass(this.bloomPass);
 
         // Glitch FX
@@ -72,8 +72,8 @@ class App {
         this.asciiPass = new ShaderPass(AsciiShader);
         this.asciiPass.enabled = false;
         this.asciiPass.uniforms['resolution'].value.set(window.innerWidth, window.innerHeight);
-        this.asciiPass.uniforms['scale'].value = 14.0; // Higher Res (Smaller chars)
-        this.asciiPass.uniforms['uColor'].value.setHex(0x00ff33); // Default Green
+        this.asciiPass.uniforms['scale'].value = CONFIG.VISUAL.ASCII.SCALE; // Higher Res (Smaller chars)
+        this.asciiPass.uniforms['uColor'].value.setHex(CONFIG.VISUAL.ASCII.COLOR); // Default Green
         this.composer.addPass(this.asciiPass);
 
         // Controls

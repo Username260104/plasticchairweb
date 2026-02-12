@@ -38,12 +38,20 @@ export class CheckIn {
 
     close() {
         this.modal.classList.remove('visible');
+
+        // Fix: Reset Layout Shift & Keyboard on Mobile
+        if (document.activeElement) {
+            document.activeElement.blur(); // Close Keyboard
+        }
+        window.scrollTo(0, 0); // Reset Scroll Position
+        document.body.scrollTop = 0; // For Safari
     }
 
     async handleSubmit(e) {
         e.preventDefault();
 
         // Loading State
+        if (document.activeElement) document.activeElement.blur(); // Close Keyboard immediately
         const originalText = this.btnSubmit.textContent;
         this.btnSubmit.textContent = '전송 중...';
         this.btnSubmit.disabled = true;

@@ -1,5 +1,30 @@
 export const CONFIG = {
-    VISUAL: {},
+    VISUAL: {
+        FOG: {
+            COLOR: 0x050505,
+            NEAR: 20,
+            FAR: 100
+        },
+        BLOOM: {
+            ENABLED: false, // Default Off
+            STRENGTH: 1.5,
+            RADIUS: 0.4,
+            THRESHOLD: 1.0
+        },
+        ASCII: {
+            SCALE: 14.0,
+            COLOR: 0x00ff33
+        }
+    },
+    WORLD: {
+        GRAVITY: { x: 0, y: -9.82, z: 0 },
+        FLOOR: {
+            SIZE: 2000,
+            COLOR: 0xcccccc,
+            ROUGHNESS: 0.8,
+            METALNESS: 0.1
+        }
+    },
     EXPLOSION: {
         FIRE_COUNT: 2000,
         FIRE_EMISSIVE_INTENSITY: 50.0,
@@ -26,7 +51,16 @@ export const CONFIG = {
 
         FRACTURE_RADIUS: 5.0,
         BLAST_RADIUS: 60.0,
-        BLAST_FORCE: 10.0
+        BLAST_FORCE: 10.0,
+
+        PARTICLE_COLORS: {
+            FIRE: [0xff4500, 0xff8c00, 0xffd700],
+            DUST: 0xffffff,
+            SPARK: 0xffffff,
+            SOOT: 0x000000,
+            SMOKE: 0x888888,
+            SPARKLER: 0xffd700
+        }
     },
     TEXT_EXPLOSION: {
         RADIUS: 300,
@@ -35,10 +69,17 @@ export const CONFIG = {
         GRAVITY: 0.5,
         DRAG: 0.99,
         ROTATION_SPEED: 0.5
+    },
+    GLITCH: {
+        PHASE_1_DURATION: 1.5, // Total Chaos
+        PHASE_2_DURATION: 4.0, // Cooldown
+        PHASE_3_DURATION: 5.0, // Long Echo
+        TRIGGER: {
+            MITOSIS_DURATION: 0.15
+        }
     }
 };
 
-// Global Scale Constants
 // Global Scale Constants
 const S_VAL = 1.5;
 
@@ -47,7 +88,10 @@ export const CAMERA = {
     NEAR: 0.1,
     FAR: 1000,
     POS: { x: -1.80, y: 6.86, z: 7.69 },
-    ROT: { x: -28.40, y: -8.00, z: -4.30 }
+    ROT: { x: -28.40, y: -8.00, z: -4.30 },
+    SHAKE: {
+        BASE_STRENGTH: 0.3
+    }
 };
 
 export const LIGHT = {
