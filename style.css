@@ -374,15 +374,15 @@ html {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 50px;
+    gap: 20px;
     /* Space between Inputs */
     width: 100%;
 }
 
 .close-btn {
     position: absolute;
-    top: -60px;
-    right: 0;
+    top: -40px;
+    right: -10px;
     background: none;
     border: none;
     font-size: 2rem;
@@ -503,7 +503,8 @@ html {
     cursor: pointer;
 }
 
-.github-link:hover {
-    opacity: 1;
-    transform: scale(1.1);
+@media (max-width: 768px) {
+    .github-link {
+        display: none;
+    }
 }
