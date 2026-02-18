@@ -249,6 +249,13 @@ html {
     transition: transform 0.1s;
     line-height: 1.0;
     /* Match top banner */
+    text-decoration: none; /* Remove underline for links */
+}
+
+/* Specific link hover */
+.nav-link:hover {
+    color: #ffffff; /* Keep white on hover */
+    /* opacity handled by nav-btn:hover */
 }
 
 .mobile-guide {

@@ -12,6 +12,13 @@
 - **Components**: `Effects.js`를 `EffectSystem`, `ParticleSystem`, `PostProcessSystem`으로 분리.
 - **Config**: 모든 매직 넘버를 `Config.js`로 중앙화.
 
+### v1.0.1 - Marquee Disabled (2026-02-12)
+- **UI**: 상단 파란 띠 및 텍스트(Marquee) 비활성화 (주석 처리).
+
+### v1.0.2 - GitHub Link Re-position (2026-02-12)
+- **UI**: 우측 상단 GitHub 로고 제거(주석 처리).
+- **Footer**: 하단 내비게이션 바 중앙에 "SOURCE" 텍스트 링크 추가.
+
 ### v0.9.10 - Auto-Hide Guide (2026-02-12)
 - **UX**: 모바일 가이드 텍스트가 **로딩 5초 후 자동으로 Fade-Out** 되도록 CSS Animation 적용.
 
