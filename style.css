@@ -227,7 +227,7 @@ html {
     padding: 0 20px;
     /* Added safety padding for rounded corners */
     box-sizing: border-box;
-    background-color: #0000FF;
+    background-color: transparent;
 }
 
 .nav-btn {
@@ -249,12 +249,14 @@ html {
     transition: transform 0.1s;
     line-height: 1.0;
     /* Match top banner */
-    text-decoration: none; /* Remove underline for links */
+    text-decoration: none;
+    /* Remove underline for links */
 }
 
 /* Specific link hover */
 .nav-link:hover {
-    color: #ffffff; /* Keep white on hover */
+    color: #ffffff;
+    /* Keep white on hover */
     /* opacity handled by nav-btn:hover */
 }
 

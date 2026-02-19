@@ -19,6 +19,13 @@
 - **UI**: 우측 상단 GitHub 로고 제거(주석 처리).
 - **Footer**: 하단 내비게이션 바 중앙에 "SOURCE" 텍스트 링크 추가.
 
+### v1.1.0 - Camera DOF Effect (2026-02-20)
+- **Visual**: 카메라 피사계 심도(DOF) 효과 추가 (`BokehPass`).
+- **Config**: DOF 관련 설정값(Focus, Aperture, MaxBlur) 추가.
+
+### v1.0.3 - Transparent Footer (2026-02-20)
+- **UI**: 하단 내비게이션 바(`.bottom-nav`)의 파란색 배경 제거 (버튼 유지).
+
 ### v0.9.10 - Auto-Hide Guide (2026-02-12)
 - **UX**: 모바일 가이드 텍스트가 **로딩 5초 후 자동으로 Fade-Out** 되도록 CSS Animation 적용.
 

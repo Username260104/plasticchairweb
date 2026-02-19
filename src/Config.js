@@ -14,6 +14,12 @@ export const CONFIG = {
         ASCII: {
             SCALE: 14.0,
             COLOR: 0x00ff33
+        },
+        DOF: {
+            ENABLED: true,
+            FOCUS: 10.0,
+            APERTURE: 0.0001,
+            MAXBLUR: 0.01
         }
     },
     WORLD: {

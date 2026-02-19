@@ -33,11 +33,11 @@
 ### B. 시각 효과 (Visual Effects)
 - **폭발 & 파괴**: 의자 파괴 시 파편(Debris) 생성 및 물리적 충격파 구현.
 - **디지털 글리치**: 충격 발생 시 화면 깨짐(Glitch) 및 아스키 아트(ASCII) 변환 효과 연출.
-- **조명 & 분위기**: Spot Light 기반의 그림자와 Bloom 효과로 몽환적 분위기 조성.
+- **조명 & 분위기**: Spot Light 기반의 그림자와 Bloom 효과, **DOF(피사계 심도) 효과**로 몽환적 분위기 조성.
 
 ### C. UI & UX
 - **스크롤 배너**: 상단 "POLYPROPYLENE SUPPORT GROUP..." 무한 스크롤 텍스트 (v1.0.1 비활성화).
-- **체크인(Check-In)**: Google Apps Script 연동 방문자 등록 시스템.
+- **체크인(Check-In)**: Google Apps Script 연동 방문자 등록 시스템 (하단 투명 내비게이션).
 - **GitHub Link**: 하단 Footer 중앙 "SOURCE" 텍스트 링크 (v1.0.2).
 - **모바일 가이드**: 모바일 환경 전용 조작법 오버레이 (자동 숨김).
 - **커스텀 커서**: 상태(클릭, 휠, 우클릭)에 반응하는 도형 커서.

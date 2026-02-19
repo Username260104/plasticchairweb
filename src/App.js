@@ -6,6 +6,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { GlitchPass } from 'three/addons/postprocessing/GlitchPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 // RGBShiftShader Removed
 import { AsciiShader } from './utils/Shaders.js';
 
@@ -59,6 +60,17 @@ class App {
         this.bloomPass.radius = CONFIG.VISUAL.BLOOM.RADIUS;
         this.bloomPass.enabled = CONFIG.VISUAL.BLOOM.ENABLED;
         this.composer.addPass(this.bloomPass);
+
+        // DOF (Bokeh)
+        this.bokehPass = new BokehPass(this.scene, this.camera, {
+            focus: CONFIG.VISUAL.DOF.FOCUS,
+            aperture: CONFIG.VISUAL.DOF.APERTURE,
+            maxblur: CONFIG.VISUAL.DOF.MAXBLUR,
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
+        this.bokehPass.enabled = CONFIG.VISUAL.DOF.ENABLED;
+        this.composer.addPass(this.bokehPass);
 
         // Glitch FX
         this.glitchPass = new GlitchPass();
@@ -341,6 +353,12 @@ class App {
         camFolder.add(this.camera, 'fov', 10, 120).step(1).name('FOV').onChange(() => {
             this.camera.updateProjectionMatrix();
         });
+
+        const dofFolder = camFolder.addFolder('📷 DOF');
+        dofFolder.add(this.bokehPass, 'enabled').name('Enabled');
+        dofFolder.add(this.bokehPass.uniforms['focus'], 'value', 0, 50).step(0.1).name('Focus Dist');
+        dofFolder.add(this.bokehPass.uniforms['aperture'], 'value', 0, 0.001).step(0.00001).name('Aperture');
+        dofFolder.add(this.bokehPass.uniforms['maxblur'], 'value', 0, 0.05).step(0.001).name('Max Blur');
 
         // Real-time Camera Info
         const camPos = camFolder.addFolder('Position');
