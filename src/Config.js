@@ -90,7 +90,7 @@ export const CONFIG = {
 const S_VAL = 1.5;
 
 export const CAMERA = {
-    FOV: 75,
+    FOV: 55,
     NEAR: 0.1,
     FAR: 1000,
     POS: { x: -1.80, y: 6.86, z: 7.69 },
